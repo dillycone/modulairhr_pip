@@ -7,6 +7,26 @@ A modern HR solution built with Next.js, Tailwind CSS, and Supabase.
 - Modern UI with Tailwind CSS and Radix UI components
 - Authentication with Supabase
 - Responsive design
+- Modular component architecture
+- Theme support
+
+## Project Structure
+
+```
+├── app/               # Next.js app directory
+│   ├── api/           # API routes
+│   ├── auth/          # Authentication pages
+│   ├── globals.css    # Global styles
+│   ├── layout.tsx     # Root layout
+│   └── page.tsx       # Landing page
+├── components/        # UI components
+│   ├── ui/            # UI library components
+│   └── ...            # Feature-specific components
+├── hooks/             # Custom React hooks
+├── lib/               # Utility functions and library configs
+├── public/            # Static assets
+└── styles/            # Additional styling
+```
 
 ## Getting Started
 

@@ -3,8 +3,17 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Menu, X } from "lucide-react"
+import { Menu, X, User, LogOut, Settings, LayoutDashboard } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
@@ -42,10 +51,10 @@ export default function Header() {
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-blue-500 flex items-center justify-center text-white font-bold">
-              P
+              M
             </div>
             <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-500">
-              PIP Assistant
+              ModulairHR
             </span>
           </Link>
         </div>
@@ -75,12 +84,49 @@ export default function Header() {
         <div className="hidden md:flex items-center gap-4">
           {showAuthUI && (user ? (
             <>
-              <Button variant="ghost" className="text-slate-700 hover:text-indigo-600 hover:bg-indigo-50" onClick={handleSignOut}>
-                Sign Out
-              </Button>
-              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full">
-                Dashboard
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src="/placeholder-user.jpg" alt={user.email || "User avatar"} />
+                      <AvatarFallback>{user.email?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">{user.email}</p>
+                      <p className="text-xs leading-none text-muted-foreground">
+                        {user.email || "user@example.com"}
+                      </p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem>
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <span>Dashboard</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <User className="mr-2 h-4 w-4" />
+                    <span>Profile</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem>
+                    <Settings className="mr-2 h-4 w-4" />
+                    <span>Settings</span>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+              <Link href="/dashboard">
+                <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full">
+                  Dashboard
+                </Button>
+              </Link>
             </>
           ) : (
             <>
@@ -144,16 +190,53 @@ export default function Header() {
             <div className="flex flex-col gap-2 pt-2">
               {showAuthUI && (user ? (
                 <>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
-                    onClick={handleSignOut}
-                  >
-                    Sign Out
-                  </Button>
-                  <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-full">
-                    Dashboard
-                  </Button>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        className="w-full justify-start text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
+                        onClick={handleSignOut}
+                      >
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src="/placeholder-user.jpg" alt={user.email || "User avatar"} />
+                          <AvatarFallback>{user.email?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
+                        </Avatar>
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56" align="end" forceMount>
+                      <DropdownMenuLabel className="font-normal">
+                        <div className="flex flex-col space-y-1">
+                          <p className="text-sm font-medium leading-none">{user.email}</p>
+                          <p className="text-xs leading-none text-muted-foreground">
+                            {user.email || "user@example.com"}
+                          </p>
+                        </div>
+                      </DropdownMenuLabel>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem>
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        <span>Dashboard</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <User className="mr-2 h-4 w-4" />
+                        <span>Profile</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuItem>
+                        <Settings className="mr-2 h-4 w-4" />
+                        <span>Settings</span>
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={handleSignOut}>
+                        <LogOut className="mr-2 h-4 w-4" />
+                        <span>Log out</span>
+                      </DropdownMenuItem>
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                  <Link href="/dashboard" className="w-full">
+                    <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-full">
+                      Dashboard
+                    </Button>
+                  </Link>
                 </>
               ) : (
                 <>
