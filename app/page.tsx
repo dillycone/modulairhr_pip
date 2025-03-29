@@ -23,7 +23,7 @@ export default function LandingPage() {
               </Badge>
               <div className="space-y-2">
                 <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-500">
-                  Automate Performance Improvement Plans
+                  Poop!!! Performance Improvement Plans
                 </h1>
                 <p className="max-w-[600px] text-slate-700 md:text-xl">
                   <span className="font-semibold text-indigo-700">Your expertise, scaled.</span> Create, track, and
