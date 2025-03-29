@@ -1,0 +1,186 @@
+"use client"
+
+import { useState, useEffect } from "react"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
+import { Menu, X } from "lucide-react"
+import { useAuth } from "@/hooks/useAuth"
+
+export default function Header() {
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
+  const [isScrolled, setIsScrolled] = useState(false)
+  const [isClient, setIsClient] = useState(false)
+  const { user, signOut, loading } = useAuth()
+
+  useEffect(() => {
+    setIsClient(true)
+    
+    const handleScroll = () => {
+      if (window.scrollY > 10) {
+        setIsScrolled(true)
+      } else {
+        setIsScrolled(false)
+      }
+    }
+
+    window.addEventListener("scroll", handleScroll)
+    return () => window.removeEventListener("scroll", handleScroll)
+  }, [])
+
+  const handleSignOut = async () => {
+    await signOut()
+  }
+
+  // Only render auth-dependent elements when client-side and not loading
+  const showAuthUI = isClient && !loading
+
+  return (
+    <header
+      className={`w-full sticky top-0 z-50 transition-all duration-200 ${isScrolled ? "bg-white/95 backdrop-blur-md shadow-sm" : "bg-transparent"}`}
+    >
+      <div className="container flex h-16 items-center justify-between px-4 md:px-6">
+        <div className="flex items-center gap-2">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-blue-500 flex items-center justify-center text-white font-bold">
+              P
+            </div>
+            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-500">
+              PIP Assistant
+            </span>
+          </Link>
+        </div>
+        <nav className="hidden md:flex gap-6">
+          <Link href="#features" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">
+            Features
+          </Link>
+          <Link
+            href="#how-it-works"
+            className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors"
+          >
+            How It Works
+          </Link>
+          <Link href="#pricing" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">
+            Pricing
+          </Link>
+          <Link
+            href="#testimonials"
+            className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors"
+          >
+            Testimonials
+          </Link>
+          <Link href="#faq" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">
+            FAQ
+          </Link>
+        </nav>
+        <div className="hidden md:flex items-center gap-4">
+          {showAuthUI && (user ? (
+            <>
+              <Button variant="ghost" className="text-slate-700 hover:text-indigo-600 hover:bg-indigo-50" onClick={handleSignOut}>
+                Sign Out
+              </Button>
+              <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full">
+                Dashboard
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link href="/auth/login">
+                <Button variant="ghost" className="text-slate-700 hover:text-indigo-600 hover:bg-indigo-50">
+                  Log In
+                </Button>
+              </Link>
+              <Link href="/auth/signup">
+                <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full">Get Started</Button>
+              </Link>
+            </>
+          ))}
+        </div>
+        <button
+          className="flex items-center justify-center rounded-md p-2 md:hidden"
+          onClick={() => setIsMenuOpen(!isMenuOpen)}
+        >
+          {isMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+          <span className="sr-only">Toggle menu</span>
+        </button>
+      </div>
+      {isMenuOpen && (
+        <div className="container md:hidden bg-white">
+          <nav className="flex flex-col gap-4 p-4">
+            <Link
+              href="#features"
+              className="text-sm font-medium text-slate-700 hover:text-indigo-600"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Features
+            </Link>
+            <Link
+              href="#how-it-works"
+              className="text-sm font-medium text-slate-700 hover:text-indigo-600"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              How It Works
+            </Link>
+            <Link
+              href="#pricing"
+              className="text-sm font-medium text-slate-700 hover:text-indigo-600"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Pricing
+            </Link>
+            <Link
+              href="#testimonials"
+              className="text-sm font-medium text-slate-700 hover:text-indigo-600"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              Testimonials
+            </Link>
+            <Link
+              href="#faq"
+              className="text-sm font-medium text-slate-700 hover:text-indigo-600"
+              onClick={() => setIsMenuOpen(false)}
+            >
+              FAQ
+            </Link>
+            <div className="flex flex-col gap-2 pt-2">
+              {showAuthUI && (user ? (
+                <>
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
+                    onClick={handleSignOut}
+                  >
+                    Sign Out
+                  </Button>
+                  <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-full">
+                    Dashboard
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/auth/login" className="w-full">
+                    <Button
+                      variant="ghost"
+                      className="w-full justify-start text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Log In
+                    </Button>
+                  </Link>
+                  <Link href="/auth/signup" className="w-full">
+                    <Button 
+                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-full"
+                      onClick={() => setIsMenuOpen(false)}
+                    >
+                      Get Started
+                    </Button>
+                  </Link>
+                </>
+              ))}
+            </div>
+          </nav>
+        </div>
+      )}
+    </header>
+  )
+}
+
