@@ -99,42 +99,42 @@ export default function LandingPage() {
               title="AI-Powered Plan Generation"
               description="Create customized PIPs in minutes with our template library and AI-assisted content generation."
               icon="FileText"
-              gradient="from-blue-500 to-indigo-600"
+              gradient="from-blue-400 to-blue-600"
               expertiseNote="You provide the judgment, we handle the paperwork"
             />
             <FeatureCard
               title="Real-Time Progress Tracking"
               description="Monitor employee progress with real-time updates, milestones, and completion metrics."
               icon="LineChart"
-              gradient="from-indigo-500 to-purple-600"
+              gradient="from-indigo-400 to-indigo-600"
               expertiseNote="Your insights, backed by comprehensive data"
             />
             <FeatureCard
               title="Comprehensive Reporting"
               description="Generate detailed reports on individual and team performance with exportable formats."
               icon="BarChart"
-              gradient="from-purple-500 to-pink-600"
+              gradient="from-blue-400 to-indigo-600"
               expertiseNote="Turn your expertise into actionable insights"
             />
             <FeatureCard
               title="Collaborative Workflow"
               description="Enable seamless collaboration between HR, managers, and employees with role-based permissions."
               icon="Users"
-              gradient="from-pink-500 to-red-600"
+              gradient="from-indigo-400 to-blue-600"
               expertiseNote="Facilitate better conversations, not replace them"
             />
             <FeatureCard
               title="Compliance Management"
               description="Ensure all PIPs meet legal and organizational requirements with built-in compliance checks."
               icon="ShieldCheck"
-              gradient="from-amber-500 to-orange-600"
+              gradient="from-blue-500 to-indigo-500"
               expertiseNote="Your legal knowledge, consistently applied"
             />
             <FeatureCard
               title="Integration Capabilities"
               description="Connect with your existing HR systems, calendar, and communication tools."
               icon="Link"
-              gradient="from-emerald-500 to-green-600"
+              gradient="from-indigo-500 to-blue-500"
               expertiseNote="Works with your processes, not against them"
             />
           </div>

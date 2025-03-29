@@ -54,7 +54,7 @@ export default function Header() {
               M
             </div>
             <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-500">
-              PIP Assistant | A ModulairHR Solution
+              PIP Assistant | A ModulAIr HR Solution
             </span>
           </Link>
         </div>
