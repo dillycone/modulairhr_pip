@@ -9,9 +9,10 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
 import { toast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
+import { AuthError } from '@/components/ui/auth-error';
 
 const formSchema = z.object({
   password: z.string().min(6, { message: 'Password must be at least 6 characters' }),
@@ -21,11 +22,14 @@ const formSchema = z.object({
   path: ["confirmPassword"],
 });
 
+type FormValues = z.infer<typeof formSchema>;
+
 export default function UpdatePasswordPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const { updatePassword, error: authError } = useAuth();
   
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       password: '',
@@ -33,13 +37,11 @@ export default function UpdatePasswordPage() {
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: FormValues) {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.updateUser({
-        password: values.password,
-      });
+      const { error } = await updatePassword(values.password);
 
       if (error) {
         throw error;
@@ -75,20 +77,51 @@ export default function UpdatePasswordPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormItem>
-                <FormLabel>New Password</FormLabel>
-                <FormControl>
-                  <Input type="password" placeholder="••••••••" {...form.register('password')} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-              <FormItem>
-                <FormLabel>Confirm New Password</FormLabel>
-                <FormControl>
-                  <Input type="password" placeholder="••••••••" {...form.register('confirmPassword')} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
+              <FormField
+                control={form.control}
+                name="password"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>New Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        disabled={isLoading}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="confirmPassword"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Confirm New Password</FormLabel>
+                    <FormControl>
+                      <Input
+                        type="password"
+                        placeholder="••••••••"
+                        disabled={isLoading}
+                        {...field}
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {authError && (
+                <AuthError
+                  severity="error"
+                  message={authError.message}
+                />
+              )}
+              
               <Button type="submit" className="w-full" disabled={isLoading}>
                 {isLoading ? 'Updating password...' : 'Update password'}
               </Button>

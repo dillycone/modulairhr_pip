@@ -23,6 +23,7 @@ export default function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const [redirectTo, setRedirectTo] = useState('/dashboard');
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { signIn, signInWithOAuth, error: authError } = useAuth();
   
   // Initialize form with react-hook-form
@@ -35,18 +36,13 @@ export default function Login() {
     },
   });
 
-  // Safely get search params
+  // Set redirect URL from search params
   useEffect(() => {
-    try {
-      const searchParams = new URLSearchParams(window.location.search);
-      const redirect = searchParams.get('redirect');
-      if (redirect) {
-        setRedirectTo(redirect);
-      }
-    } catch (error) {
-      console.error('Error parsing search params:', error);
+    const redirect = searchParams.get('redirect');
+    if (redirect) {
+      setRedirectTo(redirect);
     }
-  }, []);
+  }, [searchParams]);
 
   // Handle form submission
   const onSubmit = async (values: LoginFormValues) => {
