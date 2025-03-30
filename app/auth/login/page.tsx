@@ -1,96 +1,101 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { z } from 'zod';
-import { toast } from 'react-hot-toast';
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
 import { useAuth } from '@/hooks/useAuth';
+import { AuthError } from '@/components/ui/auth-error';
+import { SocialLoginButtons } from '@/components/auth/social-login-buttons';
 
 // Form validation schema
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+  rememberMe: z.boolean().default(false),
 });
 
+type LoginFormValues = z.infer<typeof loginSchema>;
+
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [formError, setFormError] = useState<string | null>(null);
+  const [redirectTo, setRedirectTo] = useState('/dashboard');
   const router = useRouter();
-  const { signIn, error: authError } = useAuth();
+  const { signIn, signInWithOAuth, error: authError } = useAuth();
+  
+  // Initialize form with react-hook-form
+  const form = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: '',
+      password: '',
+      rememberMe: false,
+    },
+  });
 
-  // Handle auth configuration errors
+  // Safely get search params
   useEffect(() => {
-    if (authError && authError.includes('configuration')) {
-      setFormError('Authentication system is not properly configured. Please contact the administrator.');
-    }
-  }, [authError]);
-
-  // Validate email format
-  const isValidEmail = (email: string) => {
     try {
-      z.string().email().parse(email);
-      return true;
+      const searchParams = new URLSearchParams(window.location.search);
+      const redirect = searchParams.get('redirect');
+      if (redirect) {
+        setRedirectTo(redirect);
+      }
     } catch (error) {
-      return false;
+      console.error('Error parsing search params:', error);
     }
-  };
+  }, []);
 
   // Handle form submission
-  const handleLogin = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setFormError(null);
+  const onSubmit = async (values: LoginFormValues) => {
+    setIsLoading(true);
 
     try {
-      // Basic validation
-      if (!email || !password) {
-        setFormError('Please enter both email and password');
-        return;
-      }
-
-      // Validate email format
-      if (!isValidEmail(email)) {
-        setFormError('Please enter a valid email address');
-        return;
-      }
-
-      setIsLoading(true);
-
-      // Check for configuration error
-      if (process.env.NEXT_PUBLIC_SUPABASE_URL === 'your-supabase-url' || 
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY === 'your-supabase-anon-key') {
-        throw new Error('Authentication system is not properly configured');
-      }
-
       // Attempt to sign in with the provided credentials
-      const authResponse = await signIn(email, password);
+      const authResponse = await signIn({
+        email: values.email,
+        password: values.password,
+        rememberMe: values.rememberMe
+      });
 
       if (!authResponse) {
         throw new Error('Authentication service is unavailable');
       }
 
       if (authResponse.error) {
-        if (authResponse.error.message.includes('Invalid login')) {
-          setFormError('Invalid email or password');
-        } else {
-          setFormError(authResponse.error.message || 'Login failed');
-        }
+        // Form error will be displayed through the auth hook's error state
+        setIsLoading(false);
         return;
       }
 
-      // Success! Redirect to the dashboard
-      toast.success('Logged in successfully!');
-      router.push('/dashboard');
-
+      // Success! Redirect to the dashboard or specified path
+      router.push(redirectTo);
     } catch (error: any) {
       console.error('Login error:', error);
-      setFormError(error.message || 'An error occurred during login');
-    } finally {
       setIsLoading(false);
     }
   };
+
+  // Handle social login
+  const handleSocialLogin = async (provider: 'google' | 'github') => {
+    setIsLoading(true);
+    
+    try {
+      // Initiate OAuth flow with the selected provider
+      await signInWithOAuth(provider);
+      
+      // The user will be redirected to the provider's authentication page
+    } catch (error) {
+      console.error(`Error during ${provider} login:`, error);
+      setIsLoading(false);
+    }
+  };
+
+  // Show or hide configuration error
+  const showConfigError = authError?.code === 'auth/missing-oauth-credentials' || 
+                          (authError?.message && authError.message.includes('configuration'));
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
@@ -100,8 +105,8 @@ export default function Login() {
           <p className="text-sm text-muted-foreground text-center">Enter your credentials to access your account</p>
         </div>
         <div className="p-6 pt-0">
-          <form onSubmit={handleLogin} className="space-y-4">
-            {authError && authError.includes('configuration') ? (
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            {showConfigError ? (
               <div className="rounded-md bg-yellow-50 p-4 mb-4">
                 <div className="flex">
                   <div className="flex-shrink-0">
@@ -131,10 +136,12 @@ export default function Login() {
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                     placeholder="you@example.com"
                     type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
+                    {...form.register('email')}
                     disabled={isLoading}
                   />
+                  {form.formState.errors.email && (
+                    <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
+                  )}
                 </div>
                 <div className="space-y-2">
                   <div className="flex items-center justify-between">
@@ -146,15 +153,30 @@ export default function Login() {
                     className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
                     placeholder="••••••••"
                     type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
+                    {...form.register('password')}
                     disabled={isLoading}
                   />
+                  {form.formState.errors.password && (
+                    <p className="text-sm text-red-500">{form.formState.errors.password.message}</p>
+                  )}
                 </div>
-                {formError && (
-                  <div className="text-sm text-red-500 p-2 rounded-md bg-red-50">
-                    {formError}
-                  </div>
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="rememberMe"
+                    className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
+                    {...form.register('rememberMe')}
+                    disabled={isLoading}
+                  />
+                  <label htmlFor="rememberMe" className="text-sm text-gray-700">
+                    Keep me signed in
+                  </label>
+                </div>
+                {authError && !showConfigError && (
+                  <AuthError
+                    severity="error"
+                    message={authError.message}
+                  />
                 )}
                 <button
                   type="submit"
@@ -163,6 +185,12 @@ export default function Login() {
                 >
                   {isLoading ? 'Logging in...' : 'Log in'}
                 </button>
+                
+                {/* Social Login Buttons */}
+                <SocialLoginButtons 
+                  onSocialLogin={handleSocialLogin}
+                  isLoading={isLoading}
+                />
               </>
             )}
           </form>

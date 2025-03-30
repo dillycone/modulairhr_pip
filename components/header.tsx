@@ -82,7 +82,7 @@ export default function Header() {
           </Link>
         </nav>
         <div className="hidden md:flex items-center gap-4">
-          {showAuthUI && (user ? (
+          {user ? (
             <>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -139,7 +139,7 @@ export default function Header() {
                 <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full">Get Started</Button>
               </Link>
             </>
-          ))}
+          )}
         </div>
         <button
           className="flex items-center justify-center rounded-md p-2 md:hidden"
@@ -188,19 +188,19 @@ export default function Header() {
               FAQ
             </Link>
             <div className="flex flex-col gap-2 pt-2">
-              {showAuthUI && (user ? (
+              {user ? (
                 <>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
                         className="w-full justify-start text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
-                        onClick={handleSignOut}
                       >
-                        <Avatar className="h-8 w-8">
+                        <Avatar className="h-8 w-8 mr-2">
                           <AvatarImage src="/placeholder-user.jpg" alt={user.email || "User avatar"} />
                           <AvatarFallback>{user.email?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                         </Avatar>
+                        <span>{user.email}</span>
                       </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent className="w-56" align="end" forceMount>
@@ -250,7 +250,7 @@ export default function Header() {
                     </Button>
                   </Link>
                   <Link href="/auth/signup" className="w-full">
-                    <Button 
+                    <Button
                       className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-full"
                       onClick={() => setIsMenuOpen(false)}
                     >
@@ -258,7 +258,7 @@ export default function Header() {
                     </Button>
                   </Link>
                 </>
-              ))}
+              )}
             </div>
           </nav>
         </div>

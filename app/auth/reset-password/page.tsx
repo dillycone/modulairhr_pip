@@ -10,35 +10,39 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
+import { Label } from '@/components/ui/label';
 import { toast } from '@/components/ui/use-toast';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/hooks/useAuth';
+import { AuthError } from '@/components/ui/auth-error';
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Please enter a valid email address' }),
 });
 
+type FormValues = z.infer<typeof formSchema>;
+
 export default function ResetPasswordPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
+  const { resetPassword, error: authError } = useAuth();
   
-  const form = useForm<z.infer<typeof formSchema>>({
+  const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
       email: '',
     },
   });
 
-  async function onSubmit(values: z.infer<typeof formSchema>) {
+  async function onSubmit(values: FormValues) {
     setIsLoading(true);
     
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(values.email, {
-        redirectTo: `${window.location.origin}/auth/update-password`,
-      });
+      const { error } = await resetPassword(values.email);
 
       if (error) {
-        throw error;
+        // Error will be displayed through the auth hook
+        setIsLoading(false);
+        return;
       }
 
       toast({
@@ -51,10 +55,9 @@ export default function ResetPasswordPage() {
     } catch (error: any) {
       toast({
         title: 'Error',
-        description: error.message || 'Failed to send reset email',
+        description: 'An unexpected error occurred',
         variant: 'destructive',
       });
-    } finally {
       setIsLoading(false);
     }
   }
@@ -69,26 +72,30 @@ export default function ResetPasswordPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <FormField
-                control={form.control}
-                name="email"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Email</FormLabel>
-                    <FormControl>
-                      <Input placeholder="you@example.com" {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="email">Email</Label>
+              <Input 
+                id="email"
+                placeholder="you@example.com" 
+                {...form.register('email')} 
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? 'Sending email...' : 'Send reset link'}
-              </Button>
-            </form>
-          </Form>
+              {form.formState.errors.email && (
+                <p className="text-sm text-red-500">{form.formState.errors.email.message}</p>
+              )}
+            </div>
+            
+            {authError && (
+              <AuthError
+                severity="error"
+                message={authError.message}
+              />
+            )}
+            
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Sending email...' : 'Send reset link'}
+            </Button>
+          </form>
         </CardContent>
         <CardFooter className="flex justify-center">
           <div className="text-center text-sm">

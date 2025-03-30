@@ -179,7 +179,7 @@ export interface FormProps<T extends z.ZodType> {
   className?: string
 }
 
-export function Form<T extends z.ZodType>({
+export function FormWrapper<T extends z.ZodType>({
   schema,
   onSubmit,
   children,
@@ -206,7 +206,7 @@ export interface FormFieldProps {
   children: React.ReactNode
 }
 
-export function FormField({ label, error, children }: FormFieldProps) {
+export function CustomFormField({ label, error, children }: FormFieldProps) {
   return (
     <div className="space-y-2">
       {label && (
@@ -230,5 +230,4 @@ export {
   FormControl,
   FormDescription,
   FormMessage,
-  FormField,
 }
