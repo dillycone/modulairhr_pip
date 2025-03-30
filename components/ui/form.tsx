@@ -10,7 +10,13 @@ import {
   FieldValues,
   FormProvider,
   useFormContext,
+  useForm,
+  UseFormReturn,
+  SubmitHandler,
 } from "react-hook-form"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { ZodSchema, ZodType } from "zod"
+import { z } from "zod"
 
 import { cn } from "@/lib/utils"
 import { Label } from "@/components/ui/label"
@@ -165,6 +171,56 @@ const FormMessage = React.forwardRef<
   )
 })
 FormMessage.displayName = "FormMessage"
+
+export interface FormProps<T extends z.ZodType> {
+  schema: T
+  onSubmit: (values: z.infer<T>) => void | Promise<void>
+  children: React.ReactNode
+  className?: string
+}
+
+export function Form<T extends z.ZodType>({
+  schema,
+  onSubmit,
+  children,
+  className,
+}: FormProps<T>) {
+  const form = useForm({
+    resolver: zodResolver(schema),
+  })
+
+  return (
+    <form
+      className={className}
+      onSubmit={form.handleSubmit(onSubmit)}
+      noValidate
+    >
+      {children}
+    </form>
+  )
+}
+
+export interface FormFieldProps {
+  label?: string
+  error?: string
+  children: React.ReactNode
+}
+
+export function FormField({ label, error, children }: FormFieldProps) {
+  return (
+    <div className="space-y-2">
+      {label && (
+        <label className="text-sm font-medium text-gray-700">
+          {label}
+        </label>
+      )}
+      {children}
+      {error && (
+        <p className="text-sm text-red-500">{error}</p>
+      )}
+    </div>
+  )
+}
 
 export {
   useFormField,
