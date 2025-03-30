@@ -53,6 +53,27 @@ export default function FeaturesSection() {
           gradient="from-indigo-500 to-blue-500"
           expertiseNote="Works with your processes, not against them"
         />
+        <FeatureCard
+          title="Multi-Language Support"
+          description="Create and manage PIPs in multiple languages to support your global workforce and ensure clear communication."
+          icon="Calendar"
+          gradient="from-green-400 to-blue-500"
+          expertiseNote="Break language barriers while maintaining consistency"
+        />
+        <FeatureCard
+          title="Template Customization"
+          description="Tailor your PIP templates to match specific departments, roles, or performance concerns."
+          icon="Settings"
+          gradient="from-purple-400 to-indigo-500"
+          expertiseNote="Standardized yet flexible for your specific needs"
+        />
+        <FeatureCard
+          title="Document Management"
+          description="Securely store, organize, and access all PIP-related documents in one centralized location."
+          icon="Lock"
+          gradient="from-blue-400 to-purple-500"
+          expertiseNote="Complete documentation with airtight security"
+        />
       </div>
     </SectionContainer>
   )
