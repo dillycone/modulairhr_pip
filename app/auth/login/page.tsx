@@ -79,7 +79,7 @@ export default function Login() {
   };
 
   // Handle social login
-  const handleSocialLogin = async (provider: 'google' | 'github') => {
+  const handleSocialLogin = async (provider: 'google') => {
     setIsLoading(true);
     
     try {
