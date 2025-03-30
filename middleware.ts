@@ -67,6 +67,7 @@ export async function middleware(req: NextRequest) {
     }
 
     // If user is not signed in and trying to access protected routes, redirect to login
+    /*
     if (!session && PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
       const redirectUrl = req.nextUrl.clone();
       redirectUrl.pathname = '/auth/login';
@@ -74,6 +75,7 @@ export async function middleware(req: NextRequest) {
       redirectUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(redirectUrl);
     }
+    */
 
     return response;
   } catch (error) {
