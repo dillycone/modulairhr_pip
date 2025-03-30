@@ -1,5 +1,6 @@
 import { Card, CardContent } from "@/components/ui/card"
 import { Star } from "lucide-react"
+import Image from "next/image"
 
 interface TestimonialCardProps {
   quote: string
@@ -21,7 +22,7 @@ export default function TestimonialCard({ quote, author, role, rating, image }: 
         <p className="text-slate-700 mb-6 italic">{quote}</p>
         <div className="flex items-center gap-4">
           <div className="rounded-full overflow-hidden w-12 h-12 border-2 border-indigo-100">
-            <img src={image || "/placeholder.svg"} alt={author} className="w-full h-full object-cover" />
+            <Image src={image || "/placeholder.svg"} alt={author} className="w-full h-full object-cover" width={48} height={48} />
           </div>
           <div>
             <p className="font-medium text-slate-900">{author}</p>

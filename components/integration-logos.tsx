@@ -1,3 +1,5 @@
+import Image from "next/image"
+
 export default function IntegrationLogos() {
   const logos = [
     { name: "Slack", src: "/placeholder.svg?height=40&width=120" },
@@ -15,7 +17,7 @@ export default function IntegrationLogos() {
           key={index}
           className="grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition-all duration-300"
         >
-          <img src={logo.src || "/placeholder.svg"} alt={logo.name} className="h-10 object-contain" />
+          <Image src={logo.src || "/placeholder.svg"} alt={logo.name} width={120} height={40} className="h-10 object-contain" />
         </div>
       ))}
     </div>

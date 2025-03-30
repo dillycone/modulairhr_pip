@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { CheckCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import Image from "next/image"
 
 export default function ExpertiseSection() {
   return (
@@ -54,10 +55,12 @@ export default function ExpertiseSection() {
           </div>
           <div className="order-1 lg:order-2 flex justify-center">
             <div className="relative w-full max-w-[500px] aspect-square rounded-2xl overflow-hidden shadow-2xl">
-              <img
+              <Image
                 src="/placeholder.svg?height=500&width=500"
                 alt="HR Professional using PIP Assistant"
                 className="object-cover w-full h-full"
+                width={500}
+                height={500}
               />
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-indigo-900/80 to-transparent p-6">
                 <p className="text-white font-medium">

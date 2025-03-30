@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 import { FileText, LineChart, BarChart, CheckCircle } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import Image from "next/image"
 
 export default function ProcessFlow() {
   const [activeStep, setActiveStep] = useState(0)
@@ -75,9 +76,11 @@ export default function ProcessFlow() {
             <div className={`h-2 w-full bg-gradient-to-r ${steps[activeStep].color}`}></div>
             <CardContent className="p-0">
               <div className="relative aspect-[4/3] w-full">
-                <img
-                  src="/placeholder.svg?height=600&width=800"
+                <Image
+                  src="/placeholder.svg"
                   alt={`PIP Assistant ${steps[activeStep].title} Screenshot`}
+                  width={800}
+                  height={600}
                   className="object-cover w-full h-full"
                 />
               </div>

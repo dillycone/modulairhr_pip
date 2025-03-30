@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button"
 import { ArrowRight, CheckCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
+import Image from "next/image"
 
 export default function HeroSection() {
   return (
@@ -48,10 +49,12 @@ export default function HeroSection() {
           <div className="flex justify-center lg:justify-end">
             <div className="relative w-full max-w-[600px] aspect-video rounded-2xl overflow-hidden shadow-2xl transform hover:scale-[1.02] transition-transform duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/10 to-blue-500/10 z-10"></div>
-              <img
+              <Image
                 src="/placeholder.svg?height=600&width=1000"
                 alt="PIP Assistant Dashboard Preview"
                 className="object-cover w-full h-full"
+                width={1000}
+                height={600}
               />
             </div>
           </div>

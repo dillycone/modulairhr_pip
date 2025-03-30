@@ -1,15 +1,20 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { SignUpForm } from '@/components/auth/signup-form';
 
 export default function SignupPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') || '/dashboard';
 
   const handleSignUpSuccess = () => {
-    router.push('/auth/login');
+    // After signup, redirect to login with the same redirect parameter
+    const loginUrl = new URL('/auth/login', window.location.origin);
+    loginUrl.searchParams.set('redirect', redirectTo);
+    router.push(loginUrl.toString());
   };
 
   return (
@@ -27,7 +32,10 @@ export default function SignupPage() {
         <CardFooter className="flex justify-center">
           <div className="text-center text-sm">
             Already have an account?{' '}
-            <Link href="/auth/login" className="text-primary hover:underline">
+            <Link 
+              href={`/auth/login${redirectTo !== '/dashboard' ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`} 
+              className="text-primary hover:underline"
+            >
               Log in
             </Link>
           </div>

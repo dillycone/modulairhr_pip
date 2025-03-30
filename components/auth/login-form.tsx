@@ -60,6 +60,10 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = '/dashboard' }: 
       onLoginSuccess()
     } catch (error: any) {
       console.error('Login error:', error)
+      form.setError('root', {
+        type: 'manual',
+        message: error.message || 'An unexpected error occurred during login'
+      })
     } finally {
       setIsLoading(false)
     }
@@ -69,9 +73,16 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = '/dashboard' }: 
     setIsLoading(true)
     
     try {
-      await signInWithOAuth(provider)
-    } catch (error) {
+      const { error } = await signInWithOAuth(provider)
+      if (error) {
+        throw error
+      }
+    } catch (error: any) {
       console.error(`Error during ${provider} login:`, error)
+      form.setError('root', {
+        type: 'manual',
+        message: error.message || `An error occurred during ${provider} login`
+      })
     } finally {
       setIsLoading(false)
     }

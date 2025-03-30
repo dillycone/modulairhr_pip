@@ -1,5 +1,5 @@
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { NextResponse, type NextRequest } from 'next/server';
 
 // Routes that require authentication
 const PROTECTED_ROUTES = [
@@ -16,29 +16,70 @@ const AUTH_ROUTES = [
 ];
 
 export async function middleware(req: NextRequest) {
-  const res = NextResponse.next();
-  
+  let response = NextResponse.next({
+    request: {
+      headers: req.headers,
+    },
+  });
+
   try {
-    // Check if user has the auth token cookie
-    const hasSession = req.cookies.has('sb-auth-token') || 
-                      req.cookies.has('supabase-auth-token');
-    
+    // Create a Supabase client for server-side auth
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          get(name: string) {
+            return req.cookies.get(name)?.value;
+          },
+          set(name: string, value: string, options: CookieOptions) {
+            // If the cookie is updated, update the response
+            response = NextResponse.next({
+              request: {
+                headers: req.headers,
+              },
+            });
+            response.cookies.set({ name, value, ...options });
+          },
+          remove(name: string, options: CookieOptions) {
+            // If the cookie is removed, update the response
+            response = NextResponse.next({
+              request: {
+                headers: req.headers,
+              },
+            });
+            response.cookies.set({ name, value: '', ...options });
+          },
+        },
+      }
+    );
+
+    // Refresh session if it exists
+    await supabase.auth.getUser();
+
+    // Get the session after potential refresh
+    const { data: { session } } = await supabase.auth.getSession();
     const pathname = req.nextUrl.pathname;
-    
+
     // If user is signed in and trying to access auth pages, redirect to dashboard
-    if (hasSession && AUTH_ROUTES.some(route => pathname.startsWith(route))) {
+    if (session && AUTH_ROUTES.some(route => pathname.startsWith(route))) {
       return NextResponse.redirect(new URL('/dashboard', req.url));
     }
-    
+
     // If user is not signed in and trying to access protected routes, redirect to login
-    if (!hasSession && PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
-      return NextResponse.redirect(new URL('/auth/login', req.url));
+    if (!session && PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
+      const redirectUrl = req.nextUrl.clone();
+      redirectUrl.pathname = '/auth/login';
+      // Store the original URL as a redirect parameter
+      redirectUrl.searchParams.set('redirect', pathname);
+      return NextResponse.redirect(redirectUrl);
     }
-    
-    return res;
+
+    return response;
   } catch (error) {
     console.error('Middleware error:', error);
-    return res;
+    // On error, allow the request to continue but log the error
+    return response;
   }
 }
 
