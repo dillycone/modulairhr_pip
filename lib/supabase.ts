@@ -31,7 +31,7 @@ const createSupabaseClient = () => {
         cookieOptions: {
           name: 'sb-auth-token',
           lifetime: 60 * 60 * 24 * 7, // 7 days
-          // domain: process.env.NODE_ENV === 'production' ? 'pipassistant.com' : undefined, // Let browser default domain
+          domain: process.env.NODE_ENV === 'production' ? 'pipassistant.com' : undefined, // Set domain for production
           path: '/',
           sameSite: 'lax'
         }

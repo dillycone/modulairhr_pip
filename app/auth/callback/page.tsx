@@ -51,34 +51,53 @@ function AuthCallbackContent() {
               setStatus('Setting up your session...');
               console.log('Attempting supabase.auth.setSession...');
 
-              // Set the session directly with the hash parameters
-              const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-                access_token: accessToken,
-                refresh_token: refreshToken
-              });
+              // Use Supabase's recommended method for setting session
+              try {
+                setStatus('Setting up your session...');
+                console.log('Attempting to establish session from URL hash tokens...');
+                
+                // First try using the recommended method that preserves cookie state
+                const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
+                  access_token: accessToken,
+                  refresh_token: refreshToken
+                });
 
-              if (sessionError) {
-                console.error('Failed to set session from hash:', sessionError);
-                setError(`Authentication error during setSession: ${sessionError.message}`);
+                if (sessionError) {
+                  console.error('Failed to set session from hash:', sessionError);
+                  setError(`Authentication error during setSession: ${sessionError.message}`);
+                  return;
+                }
+
+                if (!sessionData.session) {
+                  console.error('setSession succeeded but returned no session.');
+                  setError('No session was created after authentication. Please try again.');
+                  return;
+                }
+
+                console.log('Successfully set session from hash tokens. Session User:', sessionData.user?.email);
+                
+                // Verify the session was properly established with a getSession check
+                const { data: verifyData, error: verifyError } = await supabase.auth.getSession();
+                if (verifyError) {
+                  console.error('Error verifying session after setSession:', verifyError);
+                  // Continue with redirect anyway
+                } else {
+                  console.log('Session verification:', verifyData.session ? 'Session exists' : 'No session found');
+                }
+
+                // Set a short delay to allow session to be fully established
+                setStatus('Authentication successful, redirecting to dashboard...');
+                await new Promise(resolve => setTimeout(resolve, 1500));
+
+                // Use router.push instead of direct location change to ensure proper state handling
+                let dashboardUrl = '/dashboard';
+                console.log(`Redirecting to ${dashboardUrl}`);
+                router.push(dashboardUrl);
+              } catch (setSessionError: any) {
+                console.error('Critical error during session establishment:', setSessionError);
+                setError(`Authentication error: ${setSessionError.message || 'Failed to establish session'}`);
                 return;
               }
-
-              if (!sessionData.session) {
-                console.error('setSession succeeded but returned no session.');
-                setError('No session was created after authentication. Please try again.');
-                return;
-              }
-
-              console.log('Successfully set session from hash tokens. Session User:', sessionData.user?.email);
-
-              // Set a short delay to allow session to be established/propagated
-              setStatus('Authentication successful, redirecting to dashboard...');
-              await new Promise(resolve => setTimeout(resolve, 1000));
-
-              // Redirect to dashboard on the canonical domain
-              let dashboardUrl = '/dashboard';
-              console.log(`Redirecting to ${dashboardUrl}`);
-              window.location.href = dashboardUrl;
               return;
             } catch (sessionError: any) {
               console.error('Critical error during supabase.auth.setSession call:', sessionError);

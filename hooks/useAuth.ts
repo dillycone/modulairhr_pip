@@ -329,7 +329,7 @@ export const useAuth = () => {
       
       // Use consistent URL structure that matches Supabase config
       const redirectUrl = process.env.NODE_ENV === 'production'
-        ? 'https://www.pipassistant.com/auth/callback' // Ensure this is your canonical URL
+        ? 'https://pipassistant.com/auth/callback' // Remove www to match cookie domain
         : `${window.location.origin}/auth/callback`;
         
       console.log(`OAuth sign-in using redirect URL: ${redirectUrl}`);
