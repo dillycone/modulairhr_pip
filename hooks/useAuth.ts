@@ -328,8 +328,8 @@ export const useAuth = () => {
       setState(prev => ({ ...prev, loading: true, error: null }));
       
       // Use consistent URL structure that matches Supabase config
-      const redirectUrl = process.env.NODE_ENV === 'production' 
-        ? 'https://www.pipassistant.com/auth/callback'  
+      const redirectUrl = process.env.NODE_ENV === 'production'
+        ? 'https://www.pipassistant.com/auth/callback' // Ensure this is your canonical URL
         : `${window.location.origin}/auth/callback`;
         
       console.log(`OAuth sign-in using redirect URL: ${redirectUrl}`);
