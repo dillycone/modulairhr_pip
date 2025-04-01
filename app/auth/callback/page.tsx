@@ -24,6 +24,8 @@ function AuthCallbackContent() {
           host: window.location.host,
           hostname: window.location.hostname,
           origin: window.location.origin,
+          protocol: window.location.protocol,
+          pathname: window.location.pathname,
           environment: process.env.NODE_ENV,
           timestamp: new Date().toISOString(),
           // Cookie info (without revealing values)
@@ -89,10 +91,20 @@ function AuthCallbackContent() {
                 setStatus('Authentication successful, redirecting to dashboard...');
                 await new Promise(resolve => setTimeout(resolve, 1500));
 
-                // Use router.push instead of direct location change to ensure proper state handling
+                // Use direct window.location change for cross-domain scenarios
                 let dashboardUrl = '/dashboard';
-                console.log(`Redirecting to ${dashboardUrl}`);
-                router.push(dashboardUrl);
+                
+                // Handle potential cross-domain issues by using the full URL if needed
+                if (window.location.hostname.includes('www.')) {
+                  // We're on www but need to be on non-www
+                  const nonWwwUrl = `${window.location.protocol}//pipassistant.com${dashboardUrl}`;
+                  console.log(`Redirecting from www to non-www: ${nonWwwUrl}`);
+                  window.location.href = nonWwwUrl;
+                } else {
+                  // We're already on the correct domain
+                  console.log(`Redirecting to ${dashboardUrl}`);
+                  window.location.href = dashboardUrl;
+                }
               } catch (setSessionError: any) {
                 console.error('Critical error during session establishment:', setSessionError);
                 setError(`Authentication error: ${setSessionError.message || 'Failed to establish session'}`);
