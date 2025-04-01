@@ -1,217 +1,90 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 function AuthCallbackContent() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>('Processing authentication...');
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleCallback = async () => {
+    // This function handles the OAuth callback more reliably
+    async function handleAuthCallback() {
       try {
-        console.log('Auth callback initiated');
-        setStatus('Starting authentication process...');
+        setStatus('Processing authentication response...');
         
-        // Collect debugging information about the current URL
-        const currentUrl = window.location.href;
-        const searchParamsEntries = Array.from(searchParams.entries());
-        const allSearchParams = Object.fromEntries(searchParamsEntries);
-        
+        // Log debug info
         const debugData = {
-          url: currentUrl,
+          url: window.location.href,
           hash: window.location.hash,
-          params: allSearchParams,
-          hostname: window.location.hostname,
           origin: window.location.origin,
           environment: process.env.NODE_ENV,
           timestamp: new Date().toISOString()
         };
-        
         console.log('Debug info:', debugData);
         setDebugInfo(JSON.stringify(debugData, null, 2));
         
-        // Get the URL hash from the window object (more reliable than using searchParams)
-        const hash = window.location.hash;
-        const code = searchParams.get('code');
-        const error = searchParams.get('error');
-        const errorDescription = searchParams.get('error_description');
+        // Set bypass cookie to help with authentication flow
+        document.cookie = `auth_bypass_token=true;path=/;max-age=${60 * 5}`; // 5 minutes
         
-        // Check if we received an error from the OAuth provider
+        // Use Supabase's built-in redirect handler which handles both hash and code flows
+        const { data, error } = await supabase.auth.getSession();
+        
         if (error) {
-          console.error('OAuth provider returned an error:', { error, errorDescription });
-          setError(`Authentication error: ${errorDescription || error}`);
+          console.error('Authentication error:', error);
+          setError(`Authentication error: ${error.message}`);
           return;
         }
         
-        console.log('Auth data:', { hasHash: !!hash, hasCode: !!code });
-        
-        try {
-          // Set a bypass token in cookies to help middleware identify this as a valid OAuth session
-          document.cookie = `auth_bypass_token=true;path=/;max-age=${60 * 5}`; // 5 minutes
-        } catch (cookieError) {
-          console.warn('Failed to set auth bypass cookie:', cookieError);
-          // Continue even if cookie setting fails
-        }
-        
-        // Special handling for the case when we don't have hash or code
-        if (!hash && !code) {
-          console.error('Missing both hash and code parameters in the callback');
-          
-          // Try to get the session directly - might work if the user is already authenticated
+        if (!data.session) {
+          // Try to parse the URL and create a session
           try {
-            const { data: sessionData } = await supabase.auth.getSession();
-            if (sessionData.session) {
-              console.log('Found existing session, redirecting to dashboard');
-              window.location.href = '/dashboard';
+            // Handle OAuth callback URL
+            const { data: redirectData, error: redirectError } = await supabase.auth.exchangeCodeForSession(
+              window.location.href
+            );
+            
+            if (redirectError) {
+              console.error('Failed to get session from URL:', redirectError);
+              setError(`Failed to authenticate: ${redirectError.message}`);
               return;
             }
-          } catch (existingSessionError) {
-            console.error('Error checking for existing session:', existingSessionError);
-          }
-          
-          setError('Authentication failed: No authentication data received from provider. Please try again.');
-          return;
-        }
-        
-        // If we have a hash, the user was redirected from OAuth
-        if (hash) {
-          setStatus('Processing OAuth callback with hash...');
-          console.log('Processing hash authentication, hash length:', hash.length);
-          
-          try {
-            // First, attempt to manually process the hash fragment if it contains an access_token
-            if (hash.includes('access_token')) {
-              console.log('Hash contains access_token, attempting manual processing');
-              
-              try {
-                // IMPORTANT: We need to explicitly set the session from the hash
-                const { data, error } = await supabase.auth.setSession({
-                  access_token: extractFromHash(hash, 'access_token'),
-                  refresh_token: extractFromHash(hash, 'refresh_token')
-                });
-                
-                if (error) {
-                  console.error('Error setting session from hash:', error);
-                  throw error;
-                }
-                
-                if (data.session) {
-                  console.log('Session set successfully from hash');
-                  setStatus('Authentication successful, validating...');
-                  
-                  // Make a second verification call to ensure session is stored
-                  try {
-                    const { data: verifyData, error: verifyError } = await supabase.auth.getUser();
-                    
-                    if (verifyError) {
-                      console.error('Error verifying user after OAuth:', verifyError);
-                      // Don't throw here, continue with redirect even if verification fails
-                    } else {
-                      console.log('User verified:', !!verifyData.user);
-                    }
-                  } catch (verifyException) {
-                    console.error('Exception during user verification:', verifyException);
-                    // Continue despite verification exception
-                  }
-                  
-                  setStatus('Authentication successful, establishing session...');
-                  
-                  // Add a longer delay to allow session to be properly established and propagated
-                  await new Promise(resolve => setTimeout(resolve, 1500));
-                  
-                  // Use window.location for a hard redirect instead of router.push
-                  console.log('Using hard redirect to dashboard');
-                  window.location.href = '/dashboard';
-                  return;
-                } else {
-                  console.warn('No session found after hash processing, falling back to code method');
-                }
-              } catch (hashProcessingError) {
-                console.error('Error processing hash fragment:', hashProcessingError);
-                // Fall through to code-based auth if hash processing fails
-              }
-            }
-          } catch (hashError) {
-            console.error('Error in hash-based authentication:', hashError);
-            // Fall through to code-based auth if hash auth fails
-          }
-        }
-        
-        // If we have a code, try to handle that
-        if (code) {
-          setStatus('Processing authentication code...');
-          console.log('Processing code authentication');
-          
-          try {
-            // Try to exchange the code for a session
-            const { data, error: sessionError } = await supabase.auth.exchangeCodeForSession(code);
             
-            if (sessionError) {
-              console.error('Error exchanging code for session:', sessionError);
-              throw sessionError;
+            if (!redirectData.session) {
+              setError('No session was created. Please try again.');
+              return;
             }
             
-            console.log('Code exchange successful, session obtained:', !!data.session);
-            setStatus('Authentication successful, validating...');
-            
-            // Make a second verification call to ensure session is stored
-            try {
-              const { data: verifyData, error: verifyError } = await supabase.auth.getUser();
-              
-              if (verifyError) {
-                console.error('Error verifying user after code exchange:', verifyError);
-                // Don't throw here, continue with redirect even if verification fails
-              } else {
-                console.log('User verified:', !!verifyData.user);
-              }
-            } catch (verifyException) {
-              console.error('Exception during user verification:', verifyException);
-              // Continue despite verification exception
-            }
-            
-            setStatus('Authentication successful, establishing session...');
-            
-            // Add a longer delay to allow session to be properly established
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Use window.location for a hard redirect instead of setTimeout/router.push
-            console.log('Using hard redirect to dashboard');
-            window.location.href = '/dashboard';
-          } catch (codeError: any) {
-            console.error('Error in code-based authentication:', codeError);
-            setError('Failed to authenticate with code: ' + (codeError.message || 'Unknown error'));
+            console.log('Successfully authenticated from redirect');
+          } catch (exchangeError: any) {
+            console.error('Error exchanging code:', exchangeError);
+            setError(`Authentication error: ${exchangeError.message}`);
+            return;
           }
-          return;
+        } else {
+          console.log('Session already exists');
         }
         
-        // We should never reach here, but just in case
-        setError('Authentication failed: Unable to process authentication response');
+        // Give a moment for session to fully establish
+        setStatus('Authentication successful, establishing session...');
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // Redirect to dashboard
+        console.log('Redirecting to dashboard...');
+        window.location.href = '/dashboard';
         
       } catch (err: any) {
         console.error('Auth callback error:', err);
-        setError(err.message || 'Authentication failed');
+        setError(`Authentication failed: ${err.message || 'Unknown error'}`);
         setStatus('Authentication failed');
       }
-    };
-    
-    handleCallback();
-  }, [router, searchParams]);
+    }
 
-  // Helper function to extract values from hash fragment
-  const extractFromHash = (hash: string, key: string): string => {
-    const hashWithoutPrefix = hash.startsWith('#') ? hash.substring(1) : hash;
-    const params = hashWithoutPrefix.split('&').reduce((acc, pair) => {
-      const [k, v] = pair.split('=');
-      acc[k] = decodeURIComponent(v);
-      return acc;
-    }, {} as Record<string, string>);
-    return params[key] || '';
-  };
+    handleAuthCallback();
+  }, [router]);
 
   return (
     <div className="flex min-h-screen items-center justify-center">
@@ -253,7 +126,7 @@ function AuthCallbackContent() {
               
               {debugInfo && (
                 <div className="mt-4 p-3 bg-gray-50 rounded text-xs font-mono overflow-auto max-h-64">
-                  <details open>
+                  <details>
                     <summary className="cursor-pointer text-gray-500">Debug Information</summary>
                     <pre className="mt-2 whitespace-pre-wrap break-all">{debugInfo}</pre>
                   </details>
