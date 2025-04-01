@@ -8,9 +8,29 @@ const createSupabaseClient = () => {
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || '';
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '';
 
+  // Validate credentials
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Supabase credentials are not set in environment variables');
+    throw new Error('Missing Supabase credentials');
+  }
+
+  if (supabaseUrl === 'your-supabase-url' || supabaseAnonKey === 'your-supabase-anon-key') {
+    console.error('Supabase credentials are set to default placeholders. Update your .env.local file.');
+    throw new Error('Invalid Supabase credentials - using placeholders');
+  }
+
   // Create the client
   try {
-    return createClient(supabaseUrl, supabaseAnonKey);
+    console.log('Initializing Supabase client');
+    const client = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        debug: process.env.NODE_ENV === 'development',
+      }
+    });
+    console.log('Supabase client initialized successfully');
+    return client;
   } catch (error) {
     console.error('Failed to initialize Supabase client:', error);
     throw new Error('Failed to initialize Supabase client');

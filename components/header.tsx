@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react"
 import Link from "next/link"
+import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Menu, X, User, LogOut, Settings, LayoutDashboard } from "lucide-react"
 import { useAuth } from "@/hooks/useAuth"
@@ -15,11 +16,23 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
+// Routes that should hide marketing navigation
+const AUTHENTICATED_ROUTES = [
+  '/dashboard',
+  '/profile',
+  '/settings'
+];
+
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
   const [isClient, setIsClient] = useState(false)
   const { user, signOut, loading } = useAuth()
+  const pathname = usePathname()
+  const router = useRouter()
+
+  // Check if current path is an authenticated route
+  const isAuthenticatedRoute = AUTHENTICATED_ROUTES.some(route => pathname?.startsWith(route))
 
   useEffect(() => {
     setIsClient(true)
@@ -40,6 +53,19 @@ export default function Header() {
     await signOut()
   }
 
+  const navigateToDashboard = (e: React.MouseEvent) => {
+    e.preventDefault()
+    console.log("Direct navigation to dashboard triggered", { 
+      hasUser: !!user,
+      isLoading: loading,
+      isClient,
+      pathname 
+    })
+    
+    // Use window.location for reliable navigation
+    window.location.href = '/dashboard'
+  }
+
   // Only render auth-dependent elements when client-side and not loading
   const showAuthUI = isClient && !loading
 
@@ -58,29 +84,31 @@ export default function Header() {
             </span>
           </Link>
         </div>
-        <nav className="hidden md:flex gap-6">
-          <Link href="#features" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">
-            Features
-          </Link>
-          <Link
-            href="#how-it-works"
-            className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors"
-          >
-            How It Works
-          </Link>
-          <Link href="#pricing" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">
-            Pricing
-          </Link>
-          <Link
-            href="#testimonials"
-            className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors"
-          >
-            Testimonials
-          </Link>
-          <Link href="#faq" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">
-            FAQ
-          </Link>
-        </nav>
+        {!isAuthenticatedRoute && (
+          <nav className="hidden md:flex gap-6">
+            <Link href="#features" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">
+              Features
+            </Link>
+            <Link
+              href="#how-it-works"
+              className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors"
+            >
+              How It Works
+            </Link>
+            <Link href="#pricing" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">
+              Pricing
+            </Link>
+            <Link
+              href="#testimonials"
+              className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors"
+            >
+              Testimonials
+            </Link>
+            <Link href="#faq" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">
+              FAQ
+            </Link>
+          </nav>
+        )}
         <div className="hidden md:flex items-center gap-4">
           {user ? (
             <>
@@ -103,12 +131,14 @@ export default function Header() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem>
-                    <Link href="/dashboard" className="flex items-center w-full">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      <span>Dashboard</span>
-                    </Link>
-                  </DropdownMenuItem>
+                  <Link href="/dashboard" passHref>
+                    <DropdownMenuItem asChild>
+                      <a className="flex items-center">
+                        <LayoutDashboard className="mr-2 h-4 w-4" />
+                        <span>Dashboard</span>
+                      </a>
+                    </DropdownMenuItem>
+                  </Link>
                   <DropdownMenuItem>
                     <User className="mr-2 h-4 w-4" />
                     <span>Profile</span>
@@ -124,8 +154,10 @@ export default function Header() {
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
-              <Link href="/dashboard">
-                <Button className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full">
+              <Link href="/dashboard" passHref>
+                <Button 
+                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full"
+                >
                   Dashboard
                 </Button>
               </Link>
@@ -154,116 +186,106 @@ export default function Header() {
       {isMenuOpen && (
         <div className="container md:hidden bg-white">
           <nav className="flex flex-col gap-4 p-4">
-            <Link
-              href="#features"
-              className="text-sm font-medium text-slate-700 hover:text-indigo-600"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Features
-            </Link>
-            <Link
-              href="#how-it-works"
-              className="text-sm font-medium text-slate-700 hover:text-indigo-600"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              How It Works
-            </Link>
-            <Link
-              href="#pricing"
-              className="text-sm font-medium text-slate-700 hover:text-indigo-600"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Pricing
-            </Link>
-            <Link
-              href="#testimonials"
-              className="text-sm font-medium text-slate-700 hover:text-indigo-600"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              Testimonials
-            </Link>
-            <Link
-              href="#faq"
-              className="text-sm font-medium text-slate-700 hover:text-indigo-600"
-              onClick={() => setIsMenuOpen(false)}
-            >
-              FAQ
-            </Link>
-            <div className="flex flex-col gap-2 pt-2">
-              {user ? (
-                <>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="w-full justify-start text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
-                      >
-                        <Avatar className="h-8 w-8 mr-2">
-                          <AvatarImage src="/placeholder-user.jpg" alt={user.email || "User avatar"} />
-                          <AvatarFallback>{user.email?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
-                        </Avatar>
-                        <span>{user.email}</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56" align="end" forceMount>
-                      <DropdownMenuLabel className="font-normal">
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium leading-none">{user.email}</p>
-                          <p className="text-xs leading-none text-muted-foreground">
-                            {user.email || "user@example.com"}
-                          </p>
-                        </div>
-                      </DropdownMenuLabel>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem>
-                        <Link href="/dashboard" className="flex items-center w-full">
-                          <LayoutDashboard className="mr-2 h-4 w-4" />
-                          <span>Dashboard</span>
-                        </Link>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <User className="mr-2 h-4 w-4" />
-                        <span>Profile</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuItem>
-                        <Settings className="mr-2 h-4 w-4" />
-                        <span>Settings</span>
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={handleSignOut}>
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Log out</span>
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                  <Link href="/dashboard" className="w-full">
-                    <Button className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-full">
-                      Dashboard
-                    </Button>
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link href="/auth/login" className="w-full">
-                    <Button
-                      variant="ghost"
-                      className="w-full justify-start text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Log In
-                    </Button>
-                  </Link>
-                  <Link href="/auth/signup" className="w-full">
-                    <Button
-                      className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-full"
-                      onClick={() => setIsMenuOpen(false)}
-                    >
-                      Get Started
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
+            {!isAuthenticatedRoute && (
+              <>
+                <Link
+                  href="#features"
+                  className="text-sm font-medium text-slate-700 hover:text-indigo-600"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Features
+                </Link>
+                <Link
+                  href="#how-it-works"
+                  className="text-sm font-medium text-slate-700 hover:text-indigo-600"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  How It Works
+                </Link>
+                <Link
+                  href="#pricing"
+                  className="text-sm font-medium text-slate-700 hover:text-indigo-600"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Pricing
+                </Link>
+                <Link
+                  href="#testimonials"
+                  className="text-sm font-medium text-slate-700 hover:text-indigo-600"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  Testimonials
+                </Link>
+                <Link
+                  href="#faq"
+                  className="text-sm font-medium text-slate-700 hover:text-indigo-600"
+                  onClick={() => setIsMenuOpen(false)}
+                >
+                  FAQ
+                </Link>
+              </>
+            )}
+            {user ? (
+              <>
+                <Link href="/dashboard" className="w-full">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Dashboard
+                  </Button>
+                </Link>
+                <Link href="/profile" className="w-full">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Profile
+                  </Button>
+                </Link>
+                <Link href="/settings" className="w-full">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Settings
+                  </Button>
+                </Link>
+                <Button
+                  variant="ghost"
+                  className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                  onClick={() => {
+                    handleSignOut();
+                    setIsMenuOpen(false);
+                  }}
+                >
+                  Log Out
+                </Button>
+              </>
+            ) : (
+              <>
+                <Link href="/auth/login" className="w-full">
+                  <Button
+                    variant="ghost"
+                    className="w-full justify-start text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Log In
+                  </Button>
+                </Link>
+                <Link href="/auth/signup" className="w-full">
+                  <Button
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-full"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Get Started
+                  </Button>
+                </Link>
+              </>
+            )}
           </nav>
         </div>
       )}

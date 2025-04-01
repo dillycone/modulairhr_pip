@@ -1,5 +1,9 @@
+'use client';
+
+import { useEffect, useState } from 'react';
 import DashboardLayout from '@/components/dashboard/dashboard-layout';
 import { Pip } from '@/types/pip';
+import { useAuth } from '@/hooks/useAuth';
 
 // Mock data for development purposes
 const mockPipData: Pip[] = [
@@ -111,6 +115,97 @@ const mockPipData: Pip[] = [
 ];
 
 export default function DashboardPage() {
+  const { user, loading, initialized } = useAuth();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [hasAuthBypass, setHasAuthBypass] = useState(false);
+
+  // Check for auth bypass cookie
+  useEffect(() => {
+    const checkAuthBypass = () => {
+      const cookies = document.cookie.split(';');
+      const bypassCookie = cookies.find(cookie => cookie.trim().startsWith('auth_bypass_token='));
+      setHasAuthBypass(!!bypassCookie);
+    };
+    
+    checkAuthBypass();
+  }, []);
+
+  useEffect(() => {
+    console.log('Dashboard page mounted', { 
+      hasUser: !!user,
+      isLoading: loading,
+      isInitialized: initialized,
+      hasAuthBypass,
+      pathname: window.location.pathname
+    });
+
+    // Force a session refresh when the dashboard loads
+    const refreshAuthState = async () => {
+      try {
+        setIsRefreshing(true);
+        const { supabase } = await import('@/lib/supabase');
+        
+        // Try multiple approaches to ensure we get the session
+        const { data: sessionData } = await supabase.auth.getSession();
+        console.log('Initial session check:', { hasSession: !!sessionData.session });
+        
+        if (!sessionData.session) {
+          // If no session, try a second approach to refresh the session
+          console.log('No session found, trying second approach');
+          const { data: userData } = await supabase.auth.getUser();
+          console.log('User check result:', { hasUser: !!userData.user });
+        }
+        
+        // Final check
+        const { data: finalSessionData } = await supabase.auth.getSession();
+        console.log('Dashboard session refresh result:', { 
+          hasSession: !!finalSessionData.session,
+          hasUser: !!finalSessionData.session?.user,
+          provider: finalSessionData.session?.user?.app_metadata?.provider || 'unknown'
+        });
+        
+        setIsRefreshing(false);
+      } catch (error) {
+        console.error('Failed to refresh session in dashboard:', error);
+        setIsRefreshing(false);
+      }
+    };
+
+    refreshAuthState();
+  }, [user, loading, initialized, hasAuthBypass]);
+
+  // If user is not authenticated but has auth bypass token, show content anyway
+  // This helps with Google OAuth where the session might not be immediately available
+  const shouldShowContent = user || hasAuthBypass;
+
+  // Show loading state when auth is not initialized yet or when refreshing session
+  if ((loading || isRefreshing || !initialized) && !hasAuthBypass) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
+        <span className="ml-3">Loading dashboard...</span>
+      </div>
+    );
+  }
+
+  if (!shouldShowContent && initialized && !loading && !isRefreshing) {
+    // If we're fully initialized and not loading, but don't have a user or bypass, show error
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center">
+        <div className="p-6 max-w-md bg-white rounded-lg border border-gray-200 shadow-md">
+          <h2 className="text-xl font-bold mb-2">Authentication Required</h2>
+          <p className="mb-4">You need to be logged in to view this page.</p>
+          <a 
+            href="/auth/login" 
+            className="inline-flex items-center px-4 py-2 text-sm font-medium text-center text-white bg-primary rounded-lg hover:bg-primary-dark"
+          >
+            Go to Login
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex min-h-screen flex-col">
       <main className="flex-1">
