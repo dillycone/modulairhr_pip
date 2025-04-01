@@ -35,6 +35,17 @@ function AuthCallbackContent() {
         console.log('Auth callback debug info:', debugData);
         setDebugInfo(JSON.stringify(debugData, null, 2));
         
+        // Check if we're on the wrong domain and need to redirect
+        if (process.env.NODE_ENV === 'production' && window.location.hostname !== 'pipassistant.com') {
+          // We need to redirect to the correct domain but preserve all hash and query params
+          const correctDomain = 'pipassistant.com';
+          const newUrl = `${window.location.protocol}//${correctDomain}${window.location.pathname}${window.location.search}${window.location.hash}`;
+          console.log(`Redirecting to correct domain: ${newUrl}`);
+          setStatus('Redirecting to correct domain...');
+          window.location.href = newUrl;
+          return; // Stop execution here to allow redirect
+        }
+        
         // Set bypass cookie to help with authentication flow
         document.cookie = `auth_bypass_token=true;path=/;max-age=${60 * 5};SameSite=Lax`; // 5 minutes
         
@@ -91,20 +102,10 @@ function AuthCallbackContent() {
                 setStatus('Authentication successful, redirecting to dashboard...');
                 await new Promise(resolve => setTimeout(resolve, 1500));
 
-                // Use direct window.location change for cross-domain scenarios
-                let dashboardUrl = '/dashboard';
-                
-                // Handle potential cross-domain issues by using the full URL if needed
-                if (window.location.hostname.includes('www.')) {
-                  // We're on www but need to be on non-www
-                  const nonWwwUrl = `${window.location.protocol}//pipassistant.com${dashboardUrl}`;
-                  console.log(`Redirecting from www to non-www: ${nonWwwUrl}`);
-                  window.location.href = nonWwwUrl;
-                } else {
-                  // We're already on the correct domain
-                  console.log(`Redirecting to ${dashboardUrl}`);
-                  window.location.href = dashboardUrl;
-                }
+                // Always use absolute URL with the correct domain
+                const dashboardUrl = `${window.location.protocol}//pipassistant.com/dashboard`;
+                console.log(`Redirecting to: ${dashboardUrl}`);
+                window.location.href = dashboardUrl;
               } catch (setSessionError: any) {
                 console.error('Critical error during session establishment:', setSessionError);
                 setError(`Authentication error: ${setSessionError.message || 'Failed to establish session'}`);
