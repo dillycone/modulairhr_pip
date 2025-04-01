@@ -11,7 +11,7 @@ function AuthCallbackContent() {
   const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   useEffect(() => {
-    // This function handles the OAuth callback more reliably
+    // This function handles the auth callback
     async function handleAuthCallback() {
       try {
         setStatus('Processing authentication response...');
@@ -49,82 +49,9 @@ function AuthCallbackContent() {
         // Set bypass cookie to help with authentication flow
         document.cookie = `auth_bypass_token=true;path=/;max-age=${60 * 5};SameSite=Lax`; // 5 minutes
         
-        // SIMPLIFIED AUTH FLOW: FOCUS ON HASH FRAGMENT HANDLING
+        // PROCESS EMAIL AUTHENTICATION FLOW
         // ------------------------------------------------------
-        // Per diagnosis, we're receiving tokens in the hash, so prioritize that flow
-        if (window.location.hash) {
-          const hashParams = new URLSearchParams(window.location.hash.substring(1));
-          const accessToken = hashParams.get('access_token');
-          const refreshToken = hashParams.get('refresh_token');
-          
-          if (accessToken && refreshToken) {
-            console.log('Found access & refresh tokens in URL hash');
-            
-            try {
-              setStatus('Setting up your session...');
-              console.log('Attempting supabase.auth.setSession...');
-
-              // Use Supabase's recommended method for setting session
-              try {
-                setStatus('Setting up your session...');
-                console.log('Attempting to establish session from URL hash tokens...');
-                
-                // First try using the recommended method that preserves cookie state
-                const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
-                  access_token: accessToken,
-                  refresh_token: refreshToken
-                });
-
-                if (sessionError) {
-                  console.error('Failed to set session from hash:', sessionError);
-                  setError(`Authentication error during setSession: ${sessionError.message}`);
-                  return;
-                }
-
-                if (!sessionData.session) {
-                  console.error('setSession succeeded but returned no session.');
-                  setError('No session was created after authentication. Please try again.');
-                  return;
-                }
-
-                console.log('Successfully set session from hash tokens. Session User:', sessionData.user?.email);
-                
-                // Verify the session was properly established with a getSession check
-                const { data: verifyData, error: verifyError } = await supabase.auth.getSession();
-                if (verifyError) {
-                  console.error('Error verifying session after setSession:', verifyError);
-                  // Continue with redirect anyway
-                } else {
-                  console.log('Session verification:', verifyData.session ? 'Session exists' : 'No session found');
-                }
-
-                // Set a short delay to allow session to be fully established
-                setStatus('Authentication successful, redirecting to dashboard...');
-                await new Promise(resolve => setTimeout(resolve, 1500));
-
-                // Always use absolute URL with the correct domain
-                const dashboardUrl = `${window.location.protocol}//pipassistant.com/dashboard`;
-                console.log(`Redirecting to: ${dashboardUrl}`);
-                window.location.href = dashboardUrl;
-              } catch (setSessionError: any) {
-                console.error('Critical error during session establishment:', setSessionError);
-                setError(`Authentication error: ${setSessionError.message || 'Failed to establish session'}`);
-                return;
-              }
-              return;
-            } catch (sessionError: any) {
-              console.error('Critical error during supabase.auth.setSession call:', sessionError);
-              setError(`Authentication error: ${sessionError.message || 'Failed to establish session'}`);
-              return;
-            }
-          } else {
-            console.warn('Hash fragment present but missing required tokens');
-          }
-        }
-        
-        // FALLBACK: CHECK FOR CODE PARAMETER OR EXISTING SESSION
-        // ------------------------------------------------------
-        // This is a fallback for other authentication flows
+        // Check for code parameter from email authentication
         const urlParams = new URLSearchParams(window.location.search);
         const hasCode = urlParams.has('code');
         

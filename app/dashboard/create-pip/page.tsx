@@ -27,7 +27,7 @@ export default function CreatePIP() {
     
     const getUser = async () => {
       try {
-        // Get the session - not getUser as it might not be available immediately in some OAuth providers
+        // Get the session
         const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
         if (sessionError) {

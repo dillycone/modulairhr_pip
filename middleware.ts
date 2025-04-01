@@ -95,7 +95,7 @@ export async function middleware(req: NextRequest) {
     }
 
     try {
-      // First try to get the user directly from the cookies, which works better with OAuth
+      // Get the user session from cookies
       console.log(`[${requestId}] Attempting to get session...`);
       
       // Get the session (with refresh attempt)
@@ -142,23 +142,6 @@ export async function middleware(req: NextRequest) {
       if (pathname.startsWith('/dashboard')) {
         const headers = new Headers(req.headers);
         headers.set('x-prevent-redirect-loop', 'true');
-        
-        // Set a bypass cookie to help with OAuth redirects
-        if (session && session.provider_token) {
-          console.log(`[${requestId}] Setting auth bypass token for OAuth session`);
-          response = NextResponse.next({
-            request: {
-              headers
-            }
-          });
-          response.cookies.set({
-            name: 'auth_bypass_token',
-            value: 'true',
-            maxAge: 60 * 5, // 5 minutes
-            path: '/'
-          });
-          return response;
-        }
         
         response = NextResponse.next({
           request: {

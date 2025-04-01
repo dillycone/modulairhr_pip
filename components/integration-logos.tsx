@@ -4,7 +4,7 @@ export default function IntegrationLogos() {
   const logos = [
     { name: "Slack", src: "/placeholder.svg?height=40&width=120" },
     { name: "Microsoft Teams", src: "/placeholder.svg?height=40&width=120" },
-    { name: "Google Workspace", src: "/placeholder.svg?height=40&width=120" },
+    { name: "Microsoft 365", src: "/placeholder.svg?height=40&width=120" },
     { name: "Salesforce", src: "/placeholder.svg?height=40&width=120" },
     { name: "Workday", src: "/placeholder.svg?height=40&width=120" },
     { name: "Zoom", src: "/placeholder.svg?height=40&width=120" },

@@ -30,8 +30,6 @@ interface AuthResponse {
   error: AuthError | null;
 }
 
-type OAuthProvider = 'google' | 'github';
-
 // Process an error into our standard format
 const processAuthError = (error: any): AuthError => {
   if (!error) return { message: 'Unknown error', code: 'unknown-error' };
@@ -39,7 +37,7 @@ const processAuthError = (error: any): AuthError => {
   if (typeof error === 'string') {
     return {
       message: error,
-      code: error.toLowerCase().includes('configuration') ? 'auth/missing-oauth-credentials' : 'unknown-error',
+      code: error.toLowerCase().includes('configuration') ? 'auth/configuration-error' : 'unknown-error',
     };
   }
   
@@ -322,54 +320,6 @@ export const useAuth = () => {
     }
   }, [mounted, state.session]);
 
-  // Sign in with OAuth provider
-  const signInWithOAuth = async (provider: OAuthProvider): Promise<AuthResponse> => {
-    try {
-      setState(prev => ({ ...prev, loading: true, error: null }));
-      
-      // Use consistent URL structure that matches Supabase config
-      const redirectUrl = process.env.NODE_ENV === 'production'
-        ? 'https://pipassistant.com/auth/callback' // Remove www to match cookie domain
-        : `${window.location.origin}/auth/callback`;
-        
-      console.log(`OAuth sign-in using redirect URL: ${redirectUrl}`);
-        
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider,
-        options: {
-          redirectTo: redirectUrl
-        }
-      });
-      
-      if (error) {
-        console.error('OAuth signin error:', error);
-        const processedError = processAuthError(error);
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: processedError
-        }));
-        return { data: null, error: processedError };
-      }
-      
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: null
-      }));
-      
-      return { data, error: null };
-    } catch (error: any) {
-      console.error('Unexpected error during OAuth signin:', error);
-      const processedError = processAuthError(error);
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: processedError
-      }));
-      return { data: null, error: processedError };
-    }
-  };
 
   // Sign out
   const signOut = async (): Promise<{ error: AuthError | null }> => {
@@ -496,7 +446,6 @@ export const useAuth = () => {
     initialized: state.initialized,
     signUp,
     signIn,
-    signInWithOAuth,
     signOut,
     resetPassword,
     updatePassword

@@ -7,7 +7,6 @@ import Link from 'next/link'
 import { z } from 'zod'
 import { useAuth } from "@/hooks/useAuth"
 import { AuthError } from "@/components/ui/auth-error"
-import { SocialLoginButtons } from "@/components/auth/social-login-buttons"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
@@ -27,7 +26,7 @@ interface LoginFormProps {
 
 export function LoginForm({ onLoginSuccess, initialRedirectTo = '/dashboard' }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false)
-  const { signIn, signInWithOAuth, error: authError } = useAuth()
+  const { signIn, error: authError } = useAuth()
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -69,27 +68,8 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = '/dashboard' }: 
     }
   }
 
-  const handleSocialLogin = async (provider: 'google') => {
-    setIsLoading(true)
-    
-    try {
-      const { error } = await signInWithOAuth(provider)
-      if (error) {
-        throw error
-      }
-    } catch (error: any) {
-      console.error(`Error during ${provider} login:`, error)
-      form.setError('root', {
-        type: 'manual',
-        message: error.message || `An error occurred during ${provider} login`
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  // Show or hide configuration error
-  const showConfigError = authError?.code === 'auth/missing-oauth-credentials' || 
+  // Show configuration error if auth is not properly set up
+  const showConfigError = authError?.code === 'auth/configuration-error' || 
                          (authError?.message && authError.message.includes('configuration'))
 
   return (
@@ -181,11 +161,6 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = '/dashboard' }: 
           >
             {isLoading ? 'Logging in...' : 'Log in'}
           </Button>
-
-          <SocialLoginButtons 
-            onSocialLogin={handleSocialLogin}
-            isLoading={isLoading}
-          />
         </>
       )}
     </form>

@@ -175,7 +175,7 @@ export default function DashboardPage() {
   }, [user, loading, initialized, hasAuthBypass]);
 
   // If user is not authenticated but has auth bypass token, show content anyway
-  // This helps with Google OAuth where the session might not be immediately available
+  // Check if we need to retry getting the session
   const shouldShowContent = user || hasAuthBypass;
 
   // Show loading state when auth is not initialized yet or when refreshing session
