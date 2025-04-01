@@ -27,6 +27,14 @@ const createSupabaseClient = () => {
         persistSession: true,
         autoRefreshToken: true,
         debug: process.env.NODE_ENV === 'development',
+        // Better cookie settings for cross-domain authentication
+        cookieOptions: {
+          name: 'sb-auth-token',
+          lifetime: 60 * 60 * 24 * 7, // 7 days
+          domain: process.env.NODE_ENV === 'production' ? 'pipassistant.com' : undefined,
+          path: '/',
+          sameSite: 'lax'
+        }
       }
     });
     console.log('Supabase client initialized successfully');

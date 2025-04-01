@@ -332,6 +332,8 @@ export const useAuth = () => {
         ? 'https://www.pipassistant.com/auth/callback'  
         : `${window.location.origin}/auth/callback`;
         
+      console.log(`OAuth sign-in using redirect URL: ${redirectUrl}`);
+        
       const { data, error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {

@@ -16,37 +16,39 @@ function AuthCallbackContent() {
       try {
         setStatus('Processing authentication response...');
         
-        // Log debug info
+        // Log enhanced debug info 
         const debugData = {
           url: window.location.href,
           hash: window.location.hash,
+          search: window.location.search,
+          host: window.location.host,
+          hostname: window.location.hostname,
           origin: window.location.origin,
           environment: process.env.NODE_ENV,
-          timestamp: new Date().toISOString()
+          timestamp: new Date().toISOString(),
+          // Cookie info (without revealing values)
+          cookieNames: document.cookie.split(';').map(c => c.trim().split('=')[0]),
+          userAgent: navigator.userAgent
         };
-        console.log('Debug info:', debugData);
+        console.log('Auth callback debug info:', debugData);
         setDebugInfo(JSON.stringify(debugData, null, 2));
         
         // Set bypass cookie to help with authentication flow
-        document.cookie = `auth_bypass_token=true;path=/;max-age=${60 * 5}`; // 5 minutes
+        document.cookie = `auth_bypass_token=true;path=/;max-age=${60 * 5};SameSite=Lax`; // 5 minutes
         
-        // Get any hash parameters from URL
-        const hashParams = new URLSearchParams(window.location.hash.substring(1));
-        const hasAccessToken = hashParams.has('access_token');
-        
-        console.log('Has hash access token:', hasAccessToken);
-        
-        // Handle the hash fragment method first if we detect it
-        if (hasAccessToken) {
-          try {
-            // Extract tokens from hash fragment
-            const accessToken = hashParams.get('access_token');
-            const refreshToken = hashParams.get('refresh_token');
-            const expiresIn = hashParams.get('expires_in');
-            const tokenType = hashParams.get('token_type');
+        // SIMPLIFIED AUTH FLOW: FOCUS ON HASH FRAGMENT HANDLING
+        // ------------------------------------------------------
+        // Per diagnosis, we're receiving tokens in the hash, so prioritize that flow
+        if (window.location.hash) {
+          const hashParams = new URLSearchParams(window.location.hash.substring(1));
+          const accessToken = hashParams.get('access_token');
+          const refreshToken = hashParams.get('refresh_token');
+          
+          if (accessToken && refreshToken) {
+            console.log('Found access & refresh tokens in URL hash');
             
-            if (accessToken && refreshToken) {
-              console.log('Setting session from hash parameters');
+            try {
+              setStatus('Setting up your session...');
               
               // Set the session directly with the hash parameters
               const { data: sessionData, error: sessionError } = await supabase.auth.setSession({
@@ -56,84 +58,94 @@ function AuthCallbackContent() {
               
               if (sessionError) {
                 console.error('Failed to set session from hash:', sessionError);
-                setError(`Failed to authenticate: ${sessionError.message}`);
+                setError(`Authentication error: ${sessionError.message}`);
                 return;
               }
               
-              if (sessionData.session) {
-                console.log('Successfully set session from hash parameters');
-              } else {
-                setError('No session created from hash parameters');
+              if (!sessionData.session) {
+                setError('No session was created. Please try again.');
                 return;
               }
+              
+              console.log('Successfully set session from hash tokens');
+              
+              // Set a short delay to allow session to be established
+              setStatus('Authentication successful, redirecting to dashboard...');
+              await new Promise(resolve => setTimeout(resolve, 1000));
+              
+              // Redirect to dashboard on the canonical domain
+              let dashboardUrl = '/dashboard';
+              window.location.href = dashboardUrl;
+              return;
+            } catch (sessionError: any) {
+              console.error('Error setting session:', sessionError);
+              setError(`Authentication error: ${sessionError.message || 'Failed to establish session'}`);
+              return;
             }
-          } catch (hashError: any) {
-            console.error('Error processing hash parameters:', hashError);
-            // Continue to other methods if this fails
+          } else {
+            console.warn('Hash fragment present but missing required tokens');
           }
         }
         
-        // Then try the normal session check
-        const { data, error } = await supabase.auth.getSession();
+        // FALLBACK: CHECK FOR CODE PARAMETER OR EXISTING SESSION
+        // ------------------------------------------------------
+        // This is a fallback for other authentication flows
+        const urlParams = new URLSearchParams(window.location.search);
+        const hasCode = urlParams.has('code');
         
-        if (error) {
-          console.error('Authentication error:', error);
-          setError(`Authentication error: ${error.message}`);
-          return;
-        }
-        
-        if (!data.session) {
-          // If no session, try the code exchange method
+        if (hasCode) {
+          console.log('Found code parameter in URL, attempting to exchange for session');
+          
           try {
-            console.log('Attempting to exchange code for session');
-            const { data: redirectData, error: redirectError } = await supabase.auth.exchangeCodeForSession(
+            const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(
               window.location.href
             );
             
-            if (redirectError) {
-              console.error('Failed to exchange code for session:', redirectError);
-              setError(`Failed to authenticate: ${redirectError.message}`);
+            if (exchangeError) {
+              console.error('Failed to exchange code for session:', exchangeError);
+              setError(`Authentication error: ${exchangeError.message}`);
               return;
             }
             
-            if (!redirectData.session) {
-              setError('No session was created. Please try again.');
+            if (!exchangeData.session) {
+              setError('No session was created from code exchange. Please try again.');
               return;
             }
             
             console.log('Successfully authenticated with code exchange');
+            
+            // Short delay to allow session to establish
+            setStatus('Authentication successful, redirecting to dashboard...');
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Redirect to dashboard
+            window.location.href = '/dashboard';
+            return;
           } catch (exchangeError: any) {
             console.error('Error exchanging code:', exchangeError);
-            setError(`Authentication error: ${exchangeError.message}`);
+            setError(`Authentication error: ${exchangeError.message || 'Failed to process authentication code'}`);
             return;
           }
-        } else {
-          console.log('Session already exists');
         }
         
-        // Give a moment for session to fully establish
-        setStatus('Authentication successful, establishing session...');
-        await new Promise(resolve => setTimeout(resolve, 2000));
+        // As a final fallback, check if we already have a session
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
         
-        // Redirect to dashboard - ensure we use the canonical domain
-        console.log('Authentication complete, redirecting to dashboard...');
-        
-        // Get the canonical domain for production
-        let dashboardUrl = '/dashboard';
-        
-        // If we're in production and on the wrong domain, correct it
-        if (process.env.NODE_ENV === 'production') {
-          const currentHost = window.location.host;
-          const preferredHost = 'www.pipassistant.com';
-          
-          if (currentHost !== preferredHost && currentHost === 'pipassistant.com') {
-            // Switch to the preferred hostname
-            dashboardUrl = `https://${preferredHost}/dashboard`;
-            console.log(`Switching to canonical domain: ${dashboardUrl}`);
-          }
+        if (sessionError) {
+          console.error('Error getting session:', sessionError);
+          setError(`Authentication error: ${sessionError.message}`);
+          return;
         }
         
-        window.location.href = dashboardUrl;
+        if (sessionData.session) {
+          console.log('Found existing session, redirecting to dashboard');
+          setStatus('Authentication successful, redirecting to dashboard...');
+          window.location.href = '/dashboard';
+          return;
+        }
+        
+        // If we get here, we have no auth data to work with
+        setError('No authentication data found. Please try again or contact support.');
         
       } catch (err: any) {
         console.error('Auth callback error:', err);
