@@ -89,16 +89,19 @@ function AuthCallbackContent() {
               console.log('Hash contains access_token, attempting manual processing');
               
               try {
-                // Let supabase auth library handle the hash fragment
-                const { data, error } = await supabase.auth.getSession();
+                // IMPORTANT: We need to explicitly set the session from the hash
+                const { data, error } = await supabase.auth.setSession({
+                  access_token: extractFromHash(hash, 'access_token'),
+                  refresh_token: extractFromHash(hash, 'refresh_token')
+                });
                 
                 if (error) {
-                  console.error('Error getting session from hash:', error);
+                  console.error('Error setting session from hash:', error);
                   throw error;
                 }
                 
                 if (data.session) {
-                  console.log('Session obtained successfully from hash');
+                  console.log('Session set successfully from hash');
                   setStatus('Authentication successful, validating...');
                   
                   // Make a second verification call to ensure session is stored
@@ -198,6 +201,17 @@ function AuthCallbackContent() {
     
     handleCallback();
   }, [router, searchParams]);
+
+  // Helper function to extract values from hash fragment
+  const extractFromHash = (hash: string, key: string): string => {
+    const hashWithoutPrefix = hash.startsWith('#') ? hash.substring(1) : hash;
+    const params = hashWithoutPrefix.split('&').reduce((acc, pair) => {
+      const [k, v] = pair.split('=');
+      acc[k] = decodeURIComponent(v);
+      return acc;
+    }, {} as Record<string, string>);
+    return params[key] || '';
+  };
 
   return (
     <div className="flex min-h-screen items-center justify-center">
