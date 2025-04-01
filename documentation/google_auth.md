@@ -228,6 +228,43 @@ If you see an error mentioning that Google OAuth isn't configured:
 ### Production
 - Ensure your production URL is properly configured in Google Cloud Console
 - Update the redirect URIs to match your production domain
+- Important: Make sure your application is configured to use the production domain for redirects
+
+### Fixing Localhost Redirect in Production
+
+If you're being redirected to `http://localhost:3000` after authentication in production:
+
+1. **Check your OAuth configuration in Google Cloud Console**:
+   - Go to [Google Cloud Console](https://console.cloud.google.com) → APIs & Services → Credentials
+   - Edit your OAuth 2.0 Client ID
+   - Ensure the appropriate production URL is in the "Authorized redirect URIs" list
+   - Remove or comment out `http://localhost:3000/auth/callback` if not needed for development
+
+2. **Check your application code**:
+   - Ensure your `redirectTo` URL in the `signInWithOAuth` call uses the correct domain:
+   ```typescript
+   // CORRECT: Use dynamic origin detection
+   const { data, error } = await supabase.auth.signInWithOAuth({
+     provider: 'google',
+     options: {
+       redirectTo: `${window.location.origin}/auth/callback`
+     }
+   });
+   
+   // INCORRECT: Hardcoded localhost
+   // redirectTo: 'http://localhost:3000/auth/callback'
+   ```
+
+3. **Check your environment variables**:
+   - Make sure your production environment doesn't have any hardcoded localhost URLs
+   - Verify that environment-specific configuration is correctly loaded
+
+4. **Supabase Site URL configuration**:
+   - In your Supabase dashboard, go to Authentication → URL Configuration
+   - Update the Site URL to match your production domain
+   - This ensures Supabase uses the correct domain for redirects
+
+Remember: OAuth redirect URLs must match exactly between your application, Supabase configuration, and Google Cloud Console settings.
 
 ## Conclusion
 

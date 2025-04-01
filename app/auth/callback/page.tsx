@@ -26,6 +26,9 @@ function AuthCallbackContent() {
           url: currentUrl,
           hash: window.location.hash,
           params: allSearchParams,
+          hostname: window.location.hostname,
+          origin: window.location.origin,
+          environment: process.env.NODE_ENV,
           timestamp: new Date().toISOString()
         };
         
@@ -78,44 +81,58 @@ function AuthCallbackContent() {
         // If we have a hash, the user was redirected from OAuth
         if (hash) {
           setStatus('Processing OAuth callback with hash...');
-          console.log('Processing hash authentication');
+          console.log('Processing hash authentication, hash length:', hash.length);
           
           try {
-            // Let Supabase handle the OAuth callback
-            const { data, error } = await supabase.auth.getSession();
-            
-            if (error) {
-              console.error('Error getting session from hash:', error);
-              throw error;
-            }
-            
-            console.log('Session obtained successfully:', !!data.session);
-            setStatus('Authentication successful, validating...');
-            
-            // Make a second verification call to ensure session is stored
-            try {
-              const { data: verifyData, error: verifyError } = await supabase.auth.getUser();
+            // First, attempt to manually process the hash fragment if it contains an access_token
+            if (hash.includes('access_token')) {
+              console.log('Hash contains access_token, attempting manual processing');
               
-              if (verifyError) {
-                console.error('Error verifying user after OAuth:', verifyError);
-                // Don't throw here, continue with redirect even if verification fails
-              } else {
-                console.log('User verified:', !!verifyData.user);
+              try {
+                // Let supabase auth library handle the hash fragment
+                const { data, error } = await supabase.auth.getSession();
+                
+                if (error) {
+                  console.error('Error getting session from hash:', error);
+                  throw error;
+                }
+                
+                if (data.session) {
+                  console.log('Session obtained successfully from hash');
+                  setStatus('Authentication successful, validating...');
+                  
+                  // Make a second verification call to ensure session is stored
+                  try {
+                    const { data: verifyData, error: verifyError } = await supabase.auth.getUser();
+                    
+                    if (verifyError) {
+                      console.error('Error verifying user after OAuth:', verifyError);
+                      // Don't throw here, continue with redirect even if verification fails
+                    } else {
+                      console.log('User verified:', !!verifyData.user);
+                    }
+                  } catch (verifyException) {
+                    console.error('Exception during user verification:', verifyException);
+                    // Continue despite verification exception
+                  }
+                  
+                  setStatus('Authentication successful, establishing session...');
+                  
+                  // Add a longer delay to allow session to be properly established and propagated
+                  await new Promise(resolve => setTimeout(resolve, 1500));
+                  
+                  // Use window.location for a hard redirect instead of router.push
+                  console.log('Using hard redirect to dashboard');
+                  window.location.href = '/dashboard';
+                  return;
+                } else {
+                  console.warn('No session found after hash processing, falling back to code method');
+                }
+              } catch (hashProcessingError) {
+                console.error('Error processing hash fragment:', hashProcessingError);
+                // Fall through to code-based auth if hash processing fails
               }
-            } catch (verifyException) {
-              console.error('Exception during user verification:', verifyException);
-              // Continue despite verification exception
             }
-            
-            setStatus('Authentication successful, establishing session...');
-            
-            // Add a longer delay to allow session to be properly established and propagated
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Use window.location for a hard redirect instead of router.push
-            console.log('Using hard redirect to dashboard');
-            window.location.href = '/dashboard';
-            return;
           } catch (hashError) {
             console.error('Error in hash-based authentication:', hashError);
             // Fall through to code-based auth if hash auth fails
@@ -221,8 +238,8 @@ function AuthCallbackContent() {
               </div>
               
               {debugInfo && (
-                <div className="mt-4 p-3 bg-gray-50 rounded text-xs font-mono overflow-auto max-h-32">
-                  <details>
+                <div className="mt-4 p-3 bg-gray-50 rounded text-xs font-mono overflow-auto max-h-64">
+                  <details open>
                     <summary className="cursor-pointer text-gray-500">Debug Information</summary>
                     <pre className="mt-2 whitespace-pre-wrap break-all">{debugInfo}</pre>
                   </details>
@@ -234,6 +251,15 @@ function AuthCallbackContent() {
           <div className="flex flex-col items-center justify-center space-y-4">
             <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
             <p className="text-sm text-gray-500">This may take a few moments...</p>
+            
+            {debugInfo && (
+              <div className="mt-4 p-3 bg-gray-50 rounded text-xs font-mono overflow-auto max-h-64 w-full">
+                <details>
+                  <summary className="cursor-pointer text-gray-500">Debug Information</summary>
+                  <pre className="mt-2 whitespace-pre-wrap break-all">{debugInfo}</pre>
+                </details>
+              </div>
+            )}
           </div>
         )}
       </div>
