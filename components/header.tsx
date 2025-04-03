@@ -51,23 +51,13 @@ export default function Header() {
 
   const handleSignOut = async () => {
     try {
-      // Clear auth bypass token if it exists
-      document.cookie = "auth_bypass_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
-      
-      // Clear Supabase cookies
-      document.cookie = "sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
-      document.cookie = "sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
-      document.cookie = "sb-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
-      
-      // Call the signOut function from useAuth
+      // We no longer manually clear cookies. Let supabase.auth.signOut handle it.
       await signOut();
-      
-      // Force redirect to home page
-      window.location.href = '/';
+      // If signOut is successful, you can do a client redirect, or rely on the user seeing logged-out states:
+      router.push('/');
     } catch (error) {
       console.error('Error during sign out:', error);
-      // Force redirect on error as well
-      window.location.href = '/';
+      router.push('/');
     }
   }
 

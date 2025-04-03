@@ -20,8 +20,6 @@ function AuthCallbackContent() {
         const hasCode = urlParams.has('code');
         if (hasCode) {
           try {
-            await supabase.auth.signOut({ scope: 'local' });
-            await new Promise(resolve => setTimeout(resolve, 500));
             const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(window.location.href);
             
             if (exchangeError) {
