@@ -1,6 +1,5 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
-import { checkBypassCookie } from '@/lib/utils';
 
 const PROTECTED_ROUTES = [
   '/dashboard',
@@ -14,6 +13,11 @@ export async function middleware(req: NextRequest) {
   console.log(`Middleware processing: ${pathname}`);
 
   try {
+    // If dev environment, optionally allow dev bypass
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Dev environment: we skip or lighten auth checks if desired');
+    }
+
     const supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
@@ -33,16 +37,9 @@ export async function middleware(req: NextRequest) {
       }
     );
 
-    // If we have a dev bypass cookie, skip protected checks:
-    if (checkBypassCookie()) {
-      console.log('Bypass cookie found, allowing dev access');
-      return response;
-    }
-
     const { data: { session }, error } = await supabase.auth.getSession();
     if (error) {
       console.error('Error getting session:', error);
-      // Could do additional logic, or just let the route pass and rely on client
     }
 
     if (!session && PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {

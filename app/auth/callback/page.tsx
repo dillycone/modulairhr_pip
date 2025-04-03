@@ -8,153 +8,48 @@ function AuthCallbackContent() {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>('Processing authentication...');
-  const [debugInfo, setDebugInfo] = useState<string | null>(null);
 
   useEffect(() => {
-    // This function handles the auth callback
     async function handleAuthCallback() {
       try {
         setStatus('Processing authentication response...');
-        
-        // Log enhanced debug info 
-        const debugData = {
-          url: window.location.href,
-          hash: window.location.hash,
-          search: window.location.search,
-          host: window.location.host,
-          hostname: window.location.hostname,
-          origin: window.location.origin,
-          protocol: window.location.protocol,
-          pathname: window.location.pathname,
-          environment: process.env.NODE_ENV,
-          timestamp: new Date().toISOString(),
-          // Cookie info (without revealing values)
-          cookieNames: document.cookie.split(';').map(c => c.trim().split('=')[0]),
-          userAgent: navigator.userAgent
-        };
-        console.log('Auth callback debug info:', debugData);
-        setDebugInfo(JSON.stringify(debugData, null, 2));
-        
-        // Check if we're on the wrong domain and need to redirect
-        if (process.env.NODE_ENV === 'production' && window.location.hostname !== 'pipassistant.com') {
-          // We need to redirect to the correct domain but preserve all hash and query params
-          const correctDomain = 'pipassistant.com';
-          const newUrl = `${window.location.protocol}//${correctDomain}${window.location.pathname}${window.location.search}${window.location.hash}`;
-          console.log(`Redirecting to correct domain: ${newUrl}`);
-          setStatus('Redirecting to correct domain...');
-          window.location.href = newUrl;
-          return; // Stop execution here to allow redirect
-        }
-        
-        // Set bypass cookie to help with authentication flow
-        document.cookie = `auth_bypass_token=true;path=/;max-age=${60 * 60 * 24};SameSite=Lax`; // 24 hours instead of 5 minutes
-        
-        // Clear any redirect loop prevention flags
-        try {
-          localStorage.removeItem('auth_redirect_attempt');
-        } catch (e) {
-          console.error('Failed to clear redirect prevention flag:', e);
-        }
-        
-        // PROCESS EMAIL AUTHENTICATION FLOW
-        // ------------------------------------------------------
-        // Check for code parameter from email authentication
+
+        try { localStorage.removeItem('auth_redirect_attempt'); } catch(_) {}
+
         const urlParams = new URLSearchParams(window.location.search);
         const hasCode = urlParams.has('code');
-        
         if (hasCode) {
-          console.log('Found code parameter in URL, attempting to exchange for session');
-          
           try {
-            // First clear any existing session that might be causing conflicts
             await supabase.auth.signOut({ scope: 'local' });
-            
-            // Add a small delay after sign out to ensure clean state
             await new Promise(resolve => setTimeout(resolve, 500));
-            
-            // Now exchange the code for a session
-            const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(
-              window.location.href
-            );
+            const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(window.location.href);
             
             if (exchangeError) {
-              console.error('Failed to exchange code for session:', exchangeError);
               setError(`Authentication error: ${exchangeError.message}`);
               return;
             }
             
             if (!exchangeData.session) {
-              setError('No session was created from code exchange. Please try again.');
+              setError('No session was created. Please try again.');
               return;
             }
             
-            console.log('Successfully authenticated with code exchange');
-            
-            // Set a bypass cookie in case session storage has issues
-            document.cookie = `auth_bypass_token=true;path=/;max-age=${60 * 60 * 24 * 7};SameSite=Lax`; // 7 days
-            
-            // Set a more reliable cookie with session info for fallback
-            try {
-              const sessionStr = JSON.stringify({
-                timestamp: new Date().toISOString(),
-                user_id: exchangeData.session.user.id,
-                expires_at: exchangeData.session.expires_at
-              });
-              document.cookie = `sb-session-fallback=${encodeURIComponent(sessionStr)};path=/;max-age=${60 * 60 * 24 * 7};SameSite=Lax`;
-              
-              // Clear any redirect loop prevention flags
-              localStorage.removeItem('auth_redirect_attempt');
-            } catch (cookieError) {
-              console.error('Failed to set session fallback cookie:', cookieError);
-            }
-            
-            // Short delay to allow session to establish
-            setStatus('Authentication successful, redirecting to dashboard...');
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            
-            // Redirect to dashboard
-            window.location.href = '/dashboard';
+            router.push('/dashboard');
             return;
-          } catch (exchangeError: any) {
-            console.error('Error exchanging code:', exchangeError);
-            setError(`Authentication error: ${exchangeError.message || 'Failed to process authentication code'}`);
+          } catch (ex: any) {
+            setError(`Authentication error: ${ex.message}`);
             return;
           }
         }
-        
-        // As a final fallback, check if we already have a session
-        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Error getting session:', sessionError);
-          setError(`Authentication error: ${sessionError.message}`);
-          return;
+
+        // Check for existing session
+        const { data, error: sessionErr } = await supabase.auth.getSession();
+        if (sessionErr || !data.session) {
+          setError('No auth session found. Please log in again.');
         }
-        
-        if (sessionData.session) {
-          console.log('Found existing session, redirecting to dashboard');
-          setStatus('Authentication successful, redirecting to dashboard...');
-          window.location.href = '/dashboard';
-          return;
-        }
-        
-        // If we get here, we have no auth data to work with
-        setError('No authentication data found. Please try again or contact support.');
-        
-        // Add option to use development bypass
-        if (process.env.NODE_ENV === 'development') {
-          document.cookie = `auth_bypass_token=dev_bypass;path=/;max-age=${60 * 60 * 24};SameSite=Lax`; // 24 hours
-          console.log('Added development bypass cookie');
-          setStatus('Development mode enabled, redirecting...');
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          window.location.href = '/dashboard';
-          return;
-        }
-        
       } catch (err: any) {
         console.error('Auth callback error:', err);
         setError(`Authentication failed: ${err.message || 'Unknown error'}`);
-        setStatus('Authentication failed');
       }
     }
 
@@ -162,81 +57,18 @@ function AuthCallbackContent() {
   }, [router]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div className="mx-auto w-full max-w-md space-y-6 px-4">
-        <div className="space-y-2 text-center">
-          <h1 className="text-3xl font-bold">Processing your sign-in</h1>
-          <p className="text-gray-500">{status}</p>
-        </div>
-        
-        {error ? (
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="flex flex-col">
-              <div className="flex">
-                <div className="flex-shrink-0">
-                  <svg className="h-5 w-5 text-red-400" fill="currentColor" viewBox="0 0 20 20">
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                </div>
-                <div className="ml-3">
-                  <h3 className="text-sm font-medium text-red-800">Authentication failed</h3>
-                  <div className="mt-2 text-sm text-red-700">
-                    <p>{error}</p>
-                  </div>
-                  <div className="mt-4">
-                    <button
-                      type="button"
-                      className="inline-flex items-center rounded-md border border-transparent bg-red-200 px-3 py-2 text-sm font-medium leading-4 text-red-800 hover:bg-red-100 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                      onClick={() => router.push('/auth/login')}
-                    >
-                      Return to login
-                    </button>
-                  </div>
-                </div>
-              </div>
-              
-              {debugInfo && (
-                <div className="mt-4 p-3 bg-gray-50 rounded text-xs font-mono overflow-auto max-h-64">
-                  <details>
-                    <summary className="cursor-pointer text-gray-500">Debug Information</summary>
-                    <pre className="mt-2 whitespace-pre-wrap break-all">{debugInfo}</pre>
-                  </details>
-                </div>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center justify-center space-y-4">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-            <p className="text-sm text-gray-500">This may take a few moments...</p>
-            
-            {debugInfo && (
-              <div className="mt-4 p-3 bg-gray-50 rounded text-xs font-mono overflow-auto max-h-64 w-full">
-                <details>
-                  <summary className="cursor-pointer text-gray-500">Debug Information</summary>
-                  <pre className="mt-2 whitespace-pre-wrap break-all">{debugInfo}</pre>
-                </details>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
+    <div className="flex min-h-screen items-center justify-center p-4">
+      {error
+        ? <div className="text-red-600">{error}</div>
+        : <div>{status}</div>}
     </div>
   );
 }
 
 export default function AuthCallbackPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-screen items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-primary"></div>
-      </div>
-    }>
+    <Suspense fallback={<div className="flex min-h-screen items-center justify-center"><div>Loading...</div></div>}>
       <AuthCallbackContent />
     </Suspense>
   );
-} 
+}

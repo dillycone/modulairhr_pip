@@ -10,11 +10,9 @@ import { AuthError } from "@/components/ui/auth-error"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 
-// Form validation schema
 const loginSchema = z.object({
   email: z.string().email('Please enter a valid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
-  rememberMe: z.boolean().default(false),
 })
 
 type LoginFormValues = z.infer<typeof loginSchema>
@@ -33,7 +31,6 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = '/dashboard' }: 
     defaultValues: {
       email: '',
       password: '',
-      rememberMe: false,
     },
   })
 
@@ -45,48 +42,27 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = '/dashboard' }: 
       const authResponse = await signIn({
         email: values.email,
         password: values.password,
-        rememberMe: values.rememberMe
       })
 
-      if (!authResponse) {
-        console.error('Authentication service returned null response')
-        throw new Error('Authentication service is unavailable')
-      }
-
-      console.log('Login response received:', { 
+      console.log('Login response received:', {
         success: !authResponse.error,
         hasUser: !!authResponse.data?.user,
         hasSession: !!authResponse.data?.session
       })
 
       if (authResponse.error) {
-        console.error('Login error from auth service:', authResponse.error)
         setIsLoading(false)
         return
       }
 
-      // Set a browser cookie as a backup authentication method
-      if (values.rememberMe) {
-        document.cookie = "auth_remember=true; path=/; max-age=2592000" // 30 days
-      }
-      
-      // Always set a bypass cookie as a fallback
-      document.cookie = "auth_bypass_token=true; path=/; max-age=86400" // 24 hours
-      
-      // Clear any redirect loop prevention flags
       try {
         localStorage.removeItem('auth_redirect_attempt');
       } catch (e) {
         console.error('Failed to clear redirect attempt flag:', e);
       }
 
-      // Wait a bit to make sure session is established
-      await new Promise(resolve => setTimeout(resolve, 500))
-      
-      console.log('Login successful, redirecting...')
-      
-      // Force a redirection instead of relying on the callback
-      window.location.href = initialRedirectTo || '/dashboard'
+      console.log('Login successful, calling onLoginSuccess ...')
+      onLoginSuccess();
     } catch (error: any) {
       console.error('Login error:', error)
       form.setError('root', {
@@ -164,19 +140,6 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = '/dashboard' }: 
             )}
           </div>
 
-          <div className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              id="rememberMe"
-              className="h-4 w-4 rounded border-gray-300 text-primary focus:ring-primary"
-              {...form.register('rememberMe')}
-              disabled={isLoading}
-            />
-            <label htmlFor="rememberMe" className="text-sm text-gray-700">
-              Keep me signed in
-            </label>
-          </div>
-
           {authError && !showConfigError && (
             <AuthError
               severity="error"
@@ -195,4 +158,4 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = '/dashboard' }: 
       )}
     </form>
   )
-} 
+}
