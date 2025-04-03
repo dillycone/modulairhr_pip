@@ -1,16 +1,9 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { UpdatePasswordForm } from '@/components/auth/update-password-form';
+import { ResetOrUpdatePasswordForm } from '@/app/sections/ResetOrUpdatePasswordForm';
 
 export default function UpdatePasswordPage() {
-  const router = useRouter();
-
-  const handleUpdateSuccess = () => {
-    router.push('/auth/login');
-  };
-
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md">
@@ -21,7 +14,7 @@ export default function UpdatePasswordPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <UpdatePasswordForm onUpdateSuccess={handleUpdateSuccess} />
+          <ResetOrUpdatePasswordForm mode="update" onSuccess={() => window.location.href = '/auth/login'} />
         </CardContent>
       </Card>
     </div>

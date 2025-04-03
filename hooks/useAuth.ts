@@ -1,14 +1,16 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { debugLog } from '@/lib/debug';
 import { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
+import { translateError } from '@/lib/error-helpers';
 
 // Auth hook interface
 interface AuthError {
   message: string;
   code: string;
-  original?: any;
+  original?: unknown;
 }
 
 interface AuthState {
@@ -30,24 +32,6 @@ interface AuthResponse {
   error: AuthError | null;
 }
 
-// Process an error into our standard format
-const processAuthError = (error: any): AuthError => {
-  if (!error) return { message: 'Unknown error', code: 'unknown-error' };
-  
-  if (typeof error === 'string') {
-    return {
-      message: error,
-      code: error.toLowerCase().includes('configuration') ? 'auth/configuration-error' : 'unknown-error',
-    };
-  }
-  
-  return {
-    message: error.message || 'Authentication error',
-    code: error.code || 'unknown-error',
-    original: error
-  };
-};
-
 export const useAuth = () => {
   const [state, setState] = useState<AuthState>({
     user: null,
@@ -66,7 +50,7 @@ export const useAuth = () => {
       initialized: true,
     }));
     // Add debug logging for auth state updates
-    console.log('Auth state updated:', { 
+    debugLog('Auth state updated:', { 
       ...updates,
       hasUser: !!updates.user,
       userEmail: updates.user?.email,
@@ -80,57 +64,29 @@ export const useAuth = () => {
     const initializeAuth = async () => {
       setMounted(true);
 
-      // Check if environment variables are set to placeholders
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      
-      if (!supabaseUrl || !supabaseAnonKey) {
-        console.error('Supabase credentials not configured');
-        updateAuthState({
-          loading: false,
-          error: processAuthError('Auth configuration missing')
-        });
-        return;
-      }
-      
-      if (supabaseUrl === 'your-supabase-url' || supabaseAnonKey === 'your-supabase-anon-key') {
-        console.error('Supabase credentials are set to placeholder values');
-        updateAuthState({
-          loading: false,
-          error: processAuthError('Auth configuration incomplete')
-        });
-        return;
-      }
-
+      // We do not do environment placeholder checks anymore
+      // That logic is in lib/supabase.ts
       try {
-        // Get initial session
+        // getSession, subscription, ...
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
         if (sessionError) {
-          console.error('Error getting session:', sessionError);
-          updateAuthState({
-            loading: false,
-            error: processAuthError(sessionError)
-          });
+          debugLog('Error getting session:', sessionError);
+          updateAuthState({ loading: false, error: { message: translateError(sessionError), code: 'init-fail', original: sessionError }});
           return;
         }
+        updateAuthState({ session, user: session?.user || null, loading: false, error: null });
+        debugLog('Auth session established:', { user: session?.user?.email });
 
-        updateAuthState({
-          session,
-          user: session?.user ?? null,
-          loading: false,
-          error: null
-        });
-
-        // Set up auth state change listener
+        // onAuthStateChange...
         const { data: { subscription } } = supabase.auth.onAuthStateChange(
-          async (event, newSession) => {
-            console.log('Auth state changed:', event);
+          async (event: AuthChangeEvent, newSession: Session | null) => {
+            debugLog('Auth state changed:', event);
             
             try {
               // Handle different auth events
               switch (event) {
                 case 'SIGNED_IN':
+                  debugLog('SIGNED_IN event');
                   updateAuthState({
                     session: newSession,
                     user: newSession?.user ?? null,
@@ -140,6 +96,7 @@ export const useAuth = () => {
                   break;
                   
                 case 'SIGNED_OUT':
+                  debugLog('SIGNED_OUT event');
                   updateAuthState({
                     session: null,
                     user: null,
@@ -174,6 +131,7 @@ export const useAuth = () => {
                   break;
                   
                 default:
+                  debugLog('Auth event:', event);
                   updateAuthState({
                     session: newSession,
                     user: newSession?.user ?? null,
@@ -181,22 +139,20 @@ export const useAuth = () => {
                     error: null
                   });
               }
-            } catch (error: any) {
-              console.error('Error in auth state change handler:', error);
-              updateAuthState({
-                error: processAuthError(error)
-              });
+            } catch (error: unknown) {
+              // unify error
+              const msg = translateError(error);
+              debugLog('Error in auth state change handler:', msg);
+              updateAuthState({ error: { message: msg, code: 'auth-change', original: error }});
             }
           }
         );
 
         authStateSubscription.subscription = subscription;
-      } catch (error: any) {
-        console.error('Error initializing auth:', error);
-        updateAuthState({
-          loading: false,
-          error: processAuthError(error)
-        });
+      } catch (error: unknown) {
+        const msg = translateError(error);
+        updateAuthState({ loading: false, error: { message: msg, code: 'init-fail', original: error }});
+        debugLog('Error initializing auth:', msg);
       }
     };
 
@@ -226,7 +182,7 @@ export const useAuth = () => {
       
       if (error) {
         console.error('Signup error:', error);
-        const processedError = processAuthError(error);
+        const processedError = { message: translateError(error), code: 'signup-fail' };
         setState(prev => ({
           ...prev,
           loading: false,
@@ -243,7 +199,7 @@ export const useAuth = () => {
       return { data, error: null };
     } catch (error: any) {
       console.error('Unexpected error during signup:', error);
-      const processedError = processAuthError(error);
+      const processedError = { message: translateError(error), code: 'signup-fail' };
       setState(prev => ({
         ...prev,
         loading: false,
@@ -253,158 +209,60 @@ export const useAuth = () => {
     }
   };
 
-  // User signin function with remember me option
-  const signIn = async ({ email, password, rememberMe = false }: SignInOptions): Promise<AuthResponse> => {
+  // Sign in
+  const signIn = async ({ email, password, rememberMe }: SignInOptions): Promise<AuthResponse> => {
+    // We rely on supabase's "persistSession" for remember-me style
+    // If you want ephemeral sessions, you'd set "persistSession: false" or handle it differently
     try {
-      console.log('Sign in started for:', email);
-      setState(prev => ({ ...prev, loading: true, error: null }));
-      
-      // First, ensure no lingering session
-      console.log('Ensuring clean session state before login');
+      debugLog('Sign in started for:', email);
+      updateAuthState({ loading: true, error: null });
+      // Sign out local scope if needed...
       await supabase.auth.signOut({ scope: 'local' });
-      
-      // Try login with password
-      console.log('Attempting to sign in with password');
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-      
+
+      // Attempt sign in with supabase
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
-        console.error('Signin error:', error);
-        const processedError = processAuthError(error);
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: processedError
-        }));
-        return { data: null, error: processedError };
+        const processed = { message: translateError(error), code: 'signin-fail', original: error };
+        debugLog('Signin error:', error);
+        updateAuthState({ loading: false, error: processed });
+        return { data: null, error: processed };
       }
 
-      console.log('Sign in successful:', { 
-        hasSession: !!data?.session,
-        hasUser: !!data?.user,
-        sessionExpiresAt: data?.session?.expires_at 
-      });
-
-      // Handle session persistence
-      if (!rememberMe && data.session) {
-        try {
-          console.log('Setting up temporary session for non-remember-me login');
-          localStorage.setItem('session_preference', 'temporary');
-          localStorage.setItem('session_start_time', Date.now().toString());
-        } catch (e) {
-          console.error('Error setting up session expiration:', e);
-        }
-      } else if (rememberMe) {
-        console.log('Setting up persistent session for remember-me login');
-        // Set a cookie as backup authentication
-        document.cookie = "auth_session_backup=true; path=/; max-age=2592000"; // 30 days
-      }
-      
-      // Force refresh session data
-      console.log('Refreshing session state after login');
+      // Done - refresh session data if needed
       const { data: refreshData } = await supabase.auth.getSession();
-      console.log('Session refresh result:', { 
-        hasSession: !!refreshData?.session,
-        sessionExpiresAt: refreshData?.session?.expires_at 
-      });
-      
-      // Update auth state with the refreshed session data
-      setState(prev => ({
-        ...prev,
+      updateAuthState({
         user: refreshData?.session?.user || data?.user || null,
         session: refreshData?.session || data?.session || null,
         loading: false,
         error: null
-      }));
-      
+      });
       return { data, error: null };
     } catch (error: any) {
       console.error('Unexpected error during signin:', error);
-      const processedError = processAuthError(error);
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: processedError
-      }));
+      const processedError = { message: translateError(error), code: 'signin-fail' };
+      updateAuthState({ loading: false, error: processedError });
       return { data: null, error: processedError };
     }
   };
 
-  // Add session check effect
-  useEffect(() => {
-    if (!mounted || !state.session) return;
-
-    try {
-      // Check if this is a temporary session
-      const sessionPreference = localStorage.getItem('session_preference');
-      if (sessionPreference === 'temporary') {
-        const sessionStart = localStorage.getItem('session_start_time');
-        if (sessionStart) {
-          const sessionAgeMs = Date.now() - parseInt(sessionStart, 10);
-          const oneDayMs = 24 * 60 * 60 * 1000;
-          
-          if (sessionAgeMs > oneDayMs) {
-            // Session is older than 1 day, log out
-            signOut();
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error checking session status:', error);
-    }
-  }, [mounted, state.session]);
-
-
   // Sign out
   const signOut = async (): Promise<{ error: AuthError | null }> => {
     try {
-      setState(prev => ({ ...prev, loading: true, error: null }));
-      
-      // Perform a global signout to ensure all sessions are cleared
-      const { error } = await supabase.auth.signOut({ scope: 'global' });
-      
-      if (error) {
-        console.error('Signout error:', error);
-        const processedError = processAuthError(error);
-        setState(prev => ({
-          ...prev,
-          loading: false,
-          error: processedError
-        }));
+      updateAuthState({ loading: true, error: null });
+      const { error: signoutError } = await supabase.auth.signOut({ scope: 'global' });
+      if (signoutError) {
+        debugLog('Signout error:', signoutError);
+        const processedError = { message: translateError(signoutError), code: 'signout-fail', original: signoutError };
+        updateAuthState({ loading: false, error: processedError });
         return { error: processedError };
       }
-      
-      // Clean up local storage items
-      try {
-        localStorage.removeItem('supabase.auth.token');
-        localStorage.removeItem('supabase.auth.error');
-        sessionStorage.removeItem('supabase.auth.token');
-        sessionStorage.removeItem('supabase.auth.error');
-        localStorage.removeItem('session_preference');
-        localStorage.removeItem('session_start_time');
-      } catch (e) {
-        console.error('Error clearing storage during signout:', e);
-      }
-      
-      setState(prev => ({
-        ...prev,
-        user: null,
-        session: null,
-        loading: false,
-        error: null
-      }));
-      
+      debugLog('User signed out globally');
+      updateAuthState({ user: null, session: null, loading: false, error: null });
       return { error: null };
     } catch (error: any) {
       console.error('Unexpected error during signout:', error);
-      const processedError = processAuthError(error);
-      setState(prev => ({
-        ...prev,
-        loading: false,
-        error: processedError
-      }));
+      const processedError = { message: translateError(error), code: 'signout-fail' };
+      updateAuthState({ loading: false, error: processedError });
       return { error: processedError };
     }
   };
@@ -413,6 +271,7 @@ export const useAuth = () => {
   const resetPassword = async (email: string): Promise<AuthResponse> => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
+      debugLog(`Resetting password for: ${email}`);
       
       const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: `${window.location.origin}/auth/update-password`,
@@ -420,7 +279,7 @@ export const useAuth = () => {
       
       if (error) {
         console.error('Password reset error:', error);
-        const processedError = processAuthError(error);
+        const processedError = { message: translateError(error), code: 'reset-password-fail' };
         setState(prev => ({
           ...prev,
           loading: false,
@@ -438,7 +297,7 @@ export const useAuth = () => {
       return { data, error: null };
     } catch (error: any) {
       console.error('Unexpected error during password reset:', error);
-      const processedError = processAuthError(error);
+      const processedError = { message: translateError(error), code: 'reset-password-fail' };
       setState(prev => ({
         ...prev,
         loading: false,
@@ -452,6 +311,7 @@ export const useAuth = () => {
   const updatePassword = async (newPassword: string): Promise<AuthResponse> => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
+      debugLog('Updating password');
       
       const { data, error } = await supabase.auth.updateUser({
         password: newPassword,
@@ -459,7 +319,7 @@ export const useAuth = () => {
       
       if (error) {
         console.error('Update password error:', error);
-        const processedError = processAuthError(error);
+        const processedError = { message: translateError(error), code: 'update-password-fail' };
         setState(prev => ({
           ...prev,
           loading: false,
@@ -477,7 +337,7 @@ export const useAuth = () => {
       return { data, error: null };
     } catch (error: any) {
       console.error('Unexpected error during password update:', error);
-      const processedError = processAuthError(error);
+      const processedError = { message: translateError(error), code: 'update-password-fail' };
       setState(prev => ({
         ...prev,
         loading: false,
@@ -496,7 +356,7 @@ export const useAuth = () => {
     signUp,
     signIn,
     signOut,
-    resetPassword,
-    updatePassword
+    resetPassword, // also simplified
+    updatePassword // also simplified
   };
 }; 

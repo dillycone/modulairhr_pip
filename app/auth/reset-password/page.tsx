@@ -1,17 +1,10 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { ResetPasswordForm } from '@/components/auth/reset-password-form';
+import { ResetOrUpdatePasswordForm } from '@/app/sections/ResetOrUpdatePasswordForm';
 
 export default function ResetPasswordPage() {
-  const router = useRouter();
-
-  const handleResetSuccess = () => {
-    router.push('/auth/login');
-  };
-
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <Card className="w-full max-w-md">
@@ -22,7 +15,7 @@ export default function ResetPasswordPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ResetPasswordForm onResetSuccess={handleResetSuccess} />
+          <ResetOrUpdatePasswordForm mode="reset" onSuccess={() => window.location.href = '/auth/login'} />
         </CardContent>
         <CardFooter className="flex justify-center">
           <div className="text-center text-sm">
