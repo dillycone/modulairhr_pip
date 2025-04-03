@@ -116,11 +116,18 @@ const mockPipData: Pip[] = [
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
+  const [pips, setPips] = useState<Pip[]>(mockPipData); // Use mock data for now
+
+  // In a real app, you would fetch data here after auth loads
+  // useEffect(() => {
+  //   if (user && !loading) {
+  //     // fetch real data from Supabase here
+  //   }
+  // }, [user, loading]);
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <h1 className="text-3xl font-bold">Dashboard Home</h1>
-      {/* Here, you can load your PIP data, since you know user is valid */}
-    </div>
+    <DashboardLayout pipData={pips}>
+      {/* Additional dashboard content could go here */}
+    </DashboardLayout>
   );
 } 
