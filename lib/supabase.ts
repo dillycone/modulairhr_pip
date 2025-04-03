@@ -28,14 +28,26 @@ const createSupabaseClient = () => {
         autoRefreshToken: true,
         debug: process.env.NODE_ENV === 'development',
         detectSessionInUrl: true,
-        flowType: 'implicit',
+        flowType: 'pkce',
         storage: {
           getItem: (key) => {
             try {
               if (typeof window === 'undefined') return null;
-              return window.localStorage.getItem(key);
+              const localValue = window.localStorage.getItem(key);
+              if (localValue) return localValue;
+              
+              if (key === 'supabase.auth.token') {
+                const cookies = document.cookie.split(';');
+                const authCookie = cookies.find(c => c.trim().startsWith('sb-auth-token='));
+                if (authCookie) {
+                  const cookieValue = authCookie.split('=')[1];
+                  console.log('Retrieved auth token from cookie fallback');
+                  return cookieValue;
+                }
+              }
+              return null;
             } catch (error) {
-              console.error('Error reading from localStorage:', error);
+              console.error('Error reading from storage:', error);
               return null;
             }
           },
@@ -43,8 +55,21 @@ const createSupabaseClient = () => {
             try {
               if (typeof window === 'undefined') return;
               window.localStorage.setItem(key, value);
+              
+              if (key === 'supabase.auth.token') {
+                const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+                document.cookie = `sb-auth-token=${value}; path=/; max-age=604800; SameSite=Lax${secureFlag}`;
+              }
             } catch (error) {
-              console.error('Error writing to localStorage:', error);
+              console.error('Error writing to storage:', error);
+              if (key === 'supabase.auth.token') {
+                try {
+                  const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+                  document.cookie = `sb-auth-token=${value}; path=/; max-age=604800; SameSite=Lax${secureFlag}`;
+                } catch (cookieError) {
+                  console.error('Error writing to cookie fallback:', cookieError);
+                }
+              }
             }
           },
           removeItem: (key) => {

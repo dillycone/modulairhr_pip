@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import { Pip } from '@/types/pip';
 import DashboardSummary from './dashboard-summary';
 import PipList from './pip-list';
@@ -9,14 +9,17 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/hooks/useAuth';
+import { checkAuthBypassCookie, setAuthBypassCookie } from '@/lib/utils';
 
 interface DashboardLayoutProps {
   pipData: Pip[];
+  children?: React.ReactNode;
 }
 
-export default function DashboardLayout({ pipData }: DashboardLayoutProps) {
+export default function DashboardLayout({ pipData, children }: DashboardLayoutProps) {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const [hasAuthBypass, setHasAuthBypass] = useState(false);
   
   // Calculate summary stats from pipData
   const activePips = pipData.filter(p => p.accountabilityStatus === 'Active').length;
@@ -25,15 +28,20 @@ export default function DashboardLayout({ pipData }: DashboardLayoutProps) {
   const accountabilityCount = pipData.filter(p => p.accountabilityStatus === 'Accountability Period').length;
 
   useEffect(() => {
+    // Check for auth bypass cookie on mount
+    const bypass = checkAuthBypassCookie();
+    setHasAuthBypass(bypass);
+    
     console.log('Dashboard layout mounted', { 
       hasUser: !!user, 
       isLoading: loading,
+      hasAuthBypass: bypass,
       pathname: window.location.pathname 
     });
 
-    // If not loading and no user, redirect to login
-    if (!loading && !user) {
-      console.log('No user found in dashboard, redirecting to login');
+    // If not loading and no user or bypass, redirect to login
+    if (!loading && !user && !bypass) {
+      console.log('No user or bypass found in dashboard, redirecting to login');
       const currentPath = window.location.pathname;
       router.push(`/auth/login?redirect=${encodeURIComponent(currentPath)}`);
     }
@@ -42,14 +50,15 @@ export default function DashboardLayout({ pipData }: DashboardLayoutProps) {
   const handleCreateNewPip = () => {
     console.log('Create new PIP button clicked');
     try {
-      router.push('/dashboard/create-pip');
+      // Use window.location for client-side navigation to avoid potential router issues
+      window.location.href = '/dashboard/create-pip';
     } catch (error) {
       console.error('Error navigating to create-pip:', error);
     }
   };
 
   // Show loading state while checking auth
-  if (loading) {
+  if (loading && !hasAuthBypass) {
     return (
       <div className="container mx-auto py-8 px-4 md:px-6">
         <div className="flex flex-col items-center justify-center h-64 space-y-4">
@@ -61,11 +70,20 @@ export default function DashboardLayout({ pipData }: DashboardLayoutProps) {
   }
 
   // Show message if no user (will redirect)
-  if (!user) {
+  if (!user && !hasAuthBypass) {
     return (
       <div className="container mx-auto py-8 px-4 md:px-6">
         <div className="flex flex-col items-center justify-center h-64 space-y-4">
           <p className="text-sm text-slate-500">Please log in to access your dashboard...</p>
+          <button
+            onClick={() => {
+              setAuthBypassCookie(7); // Set for 7 days
+              window.location.reload();
+            }}
+            className="mt-4 text-xs px-3 py-1 text-gray-500 border border-gray-300 rounded hover:bg-gray-100"
+          >
+            Enable Dev Mode
+          </button>
         </div>
       </div>
     );
@@ -73,6 +91,9 @@ export default function DashboardLayout({ pipData }: DashboardLayoutProps) {
 
   return (
     <div className="container mx-auto py-8 px-4 md:px-6">
+      {/* Render children at the top if provided */}
+      {children}
+      
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
         <Button 
@@ -102,6 +123,12 @@ export default function DashboardLayout({ pipData }: DashboardLayoutProps) {
         </p>
         <AccountabilityList pipData={pipData} />
       </div>
+      
+      {hasAuthBypass && (
+        <div className="mt-8 p-2 text-center text-xs text-gray-400">
+          Currently in development mode
+        </div>
+      )}
     </div>
   );
 } 

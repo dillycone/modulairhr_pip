@@ -50,7 +50,25 @@ export default function Header() {
   }, [])
 
   const handleSignOut = async () => {
-    await signOut()
+    try {
+      // Clear auth bypass token if it exists
+      document.cookie = "auth_bypass_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+      
+      // Clear Supabase cookies
+      document.cookie = "sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+      document.cookie = "sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+      document.cookie = "sb-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+      
+      // Call the signOut function from useAuth
+      await signOut();
+      
+      // Force redirect to home page
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Error during sign out:', error);
+      // Force redirect on error as well
+      window.location.href = '/';
+    }
   }
 
   const navigateToDashboard = (e: React.MouseEvent) => {
@@ -110,7 +128,7 @@ export default function Header() {
           </nav>
         )}
         <div className="hidden md:flex items-center gap-4">
-          {user ? (
+          {showAuthUI && user ? (
             <>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -228,7 +246,7 @@ export default function Header() {
                 </Link>
               </>
             )}
-            {user ? (
+            {showAuthUI && user ? (
               <>
                 <Link href="/dashboard" className="w-full">
                   <Button
@@ -248,27 +266,9 @@ export default function Header() {
                     Profile
                   </Button>
                 </Link>
-                <Link href="/settings" className="w-full">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Settings
-                  </Button>
-                </Link>
-                <Button
-                  variant="ghost"
-                  className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-                  onClick={() => {
-                    handleSignOut();
-                    setIsMenuOpen(false);
-                  }}
-                >
-                  Log Out
-                </Button>
               </>
             ) : (
+              // Rest of mobile menu for logged out users
               <>
                 <Link href="/auth/login" className="w-full">
                   <Button
@@ -281,7 +281,7 @@ export default function Header() {
                 </Link>
                 <Link href="/auth/signup" className="w-full">
                   <Button
-                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white rounded-full"
+                    className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
                     onClick={() => setIsMenuOpen(false)}
                   >
                     Get Started

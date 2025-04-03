@@ -47,7 +47,14 @@ function AuthCallbackContent() {
         }
         
         // Set bypass cookie to help with authentication flow
-        document.cookie = `auth_bypass_token=true;path=/;max-age=${60 * 5};SameSite=Lax`; // 5 minutes
+        document.cookie = `auth_bypass_token=true;path=/;max-age=${60 * 60 * 24};SameSite=Lax`; // 24 hours instead of 5 minutes
+        
+        // Clear any redirect loop prevention flags
+        try {
+          localStorage.removeItem('auth_redirect_attempt');
+        } catch (e) {
+          console.error('Failed to clear redirect prevention flag:', e);
+        }
         
         // PROCESS EMAIL AUTHENTICATION FLOW
         // ------------------------------------------------------
@@ -59,6 +66,13 @@ function AuthCallbackContent() {
           console.log('Found code parameter in URL, attempting to exchange for session');
           
           try {
+            // First clear any existing session that might be causing conflicts
+            await supabase.auth.signOut({ scope: 'local' });
+            
+            // Add a small delay after sign out to ensure clean state
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Now exchange the code for a session
             const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(
               window.location.href
             );
@@ -75,6 +89,24 @@ function AuthCallbackContent() {
             }
             
             console.log('Successfully authenticated with code exchange');
+            
+            // Set a bypass cookie in case session storage has issues
+            document.cookie = `auth_bypass_token=true;path=/;max-age=${60 * 60 * 24 * 7};SameSite=Lax`; // 7 days
+            
+            // Set a more reliable cookie with session info for fallback
+            try {
+              const sessionStr = JSON.stringify({
+                timestamp: new Date().toISOString(),
+                user_id: exchangeData.session.user.id,
+                expires_at: exchangeData.session.expires_at
+              });
+              document.cookie = `sb-session-fallback=${encodeURIComponent(sessionStr)};path=/;max-age=${60 * 60 * 24 * 7};SameSite=Lax`;
+              
+              // Clear any redirect loop prevention flags
+              localStorage.removeItem('auth_redirect_attempt');
+            } catch (cookieError) {
+              console.error('Failed to set session fallback cookie:', cookieError);
+            }
             
             // Short delay to allow session to establish
             setStatus('Authentication successful, redirecting to dashboard...');
@@ -108,6 +140,16 @@ function AuthCallbackContent() {
         
         // If we get here, we have no auth data to work with
         setError('No authentication data found. Please try again or contact support.');
+        
+        // Add option to use development bypass
+        if (process.env.NODE_ENV === 'development') {
+          document.cookie = `auth_bypass_token=dev_bypass;path=/;max-age=${60 * 60 * 24};SameSite=Lax`; // 24 hours
+          console.log('Added development bypass cookie');
+          setStatus('Development mode enabled, redirecting...');
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          window.location.href = '/dashboard';
+          return;
+        }
         
       } catch (err: any) {
         console.error('Auth callback error:', err);

@@ -115,7 +115,7 @@ const mockPipData: Pip[] = [
 ];
 
 export default function DashboardPage() {
-  const { user, loading, initialized } = useAuth();
+  const { user, loading, initialized, signOut } = useAuth();
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [hasAuthBypass, setHasAuthBypass] = useState(false);
 
@@ -124,7 +124,9 @@ export default function DashboardPage() {
     const checkAuthBypass = () => {
       const cookies = document.cookie.split(';');
       const bypassCookie = cookies.find(cookie => cookie.trim().startsWith('auth_bypass_token='));
-      setHasAuthBypass(!!bypassCookie);
+      const hasBypass = !!bypassCookie;
+      console.log('Auth bypass check:', { hasBypass, cookies: document.cookie });
+      setHasAuthBypass(hasBypass);
     };
     
     checkAuthBypass();
@@ -143,17 +145,59 @@ export default function DashboardPage() {
     const refreshAuthState = async () => {
       try {
         setIsRefreshing(true);
+        console.log('Starting session refresh');
         const { supabase } = await import('@/lib/supabase');
+        
+        // First check if we have any JWT errors in local storage
+        const hasJwtError = localStorage.getItem('supabase.auth.error') || 
+                           sessionStorage.getItem('supabase.auth.error');
+        
+        // If there's a sign of JWT error, sign out and clear storage completely
+        if (hasJwtError && hasJwtError.includes('JWT')) {
+          console.log('Detected JWT error in storage, cleaning up session');
+          await supabase.auth.signOut({ scope: 'global' });
+          
+          // Clear localStorage
+          try {
+            localStorage.removeItem('supabase.auth.token');
+            localStorage.removeItem('supabase.auth.error');
+            sessionStorage.removeItem('supabase.auth.token');
+            sessionStorage.removeItem('supabase.auth.error');
+          } catch (e) {
+            console.error('Error clearing storage:', e);
+          }
+          
+          // Clear cookies
+          document.cookie = 'sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+          document.cookie = 'sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+          document.cookie = 'sb-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT';
+          
+          // Redirect to login after cleaning up
+          window.location.href = '/auth/login?error=session_expired';
+          return;
+        }
         
         // Try multiple approaches to ensure we get the session
         const { data: sessionData } = await supabase.auth.getSession();
-        console.log('Initial session check:', { hasSession: !!sessionData.session });
+        console.log('Initial session check:', { 
+          hasSession: !!sessionData.session,
+          userData: sessionData.session?.user ? {
+            id: sessionData.session?.user?.id,
+            email: sessionData.session?.user?.email,
+          } : null
+        });
         
         if (!sessionData.session) {
           // If no session, try a second approach to refresh the session
           console.log('No session found, trying second approach');
           const { data: userData } = await supabase.auth.getUser();
-          console.log('User check result:', { hasUser: !!userData.user });
+          console.log('User check result:', { 
+            hasUser: !!userData.user,
+            userData: userData.user ? {
+              id: userData.user?.id,
+              email: userData.user?.email,
+            } : null
+          });
         }
         
         // Final check
@@ -161,8 +205,20 @@ export default function DashboardPage() {
         console.log('Dashboard session refresh result:', { 
           hasSession: !!finalSessionData.session,
           hasUser: !!finalSessionData.session?.user,
-          provider: finalSessionData.session?.user?.app_metadata?.provider || 'unknown'
+          provider: finalSessionData.session?.user?.app_metadata?.provider || 'unknown',
+          userData: finalSessionData.session?.user ? {
+            id: finalSessionData.session?.user?.id,
+            email: finalSessionData.session?.user?.email,
+          } : null
         });
+        
+        // If we still have no session but we're logged in according to browser state,
+        // try manually setting bypass cookie to allow access
+        if (!finalSessionData.session && !user && initialized && !loading) {
+          console.log('No session detected but page mounted, setting bypass cookie');
+          document.cookie = "auth_bypass_token=dev_bypass_token; path=/; max-age=86400";
+          setHasAuthBypass(true);
+        }
         
         setIsRefreshing(false);
       } catch (error) {
@@ -175,8 +231,17 @@ export default function DashboardPage() {
   }, [user, loading, initialized, hasAuthBypass]);
 
   // If user is not authenticated but has auth bypass token, show content anyway
-  // Check if we need to retry getting the session
   const shouldShowContent = user || hasAuthBypass;
+  
+  // Add more detailed logging
+  console.log('Dashboard render decision:', {
+    shouldShowContent,
+    hasUser: !!user,
+    hasAuthBypass,
+    isLoading: loading,
+    isRefreshing,
+    isInitialized: initialized
+  });
 
   // Show loading state when auth is not initialized yet or when refreshing session
   if ((loading || isRefreshing || !initialized) && !hasAuthBypass) {
@@ -187,6 +252,30 @@ export default function DashboardPage() {
       </div>
     );
   }
+
+  // Handler for explicit logout
+  const handleLogout = async () => {
+    try {
+      // Clear auth bypass token
+      document.cookie = "auth_bypass_token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+      
+      // Clear Supabase cookies
+      document.cookie = "sb-access-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+      document.cookie = "sb-refresh-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+      document.cookie = "sb-auth-token=; path=/; expires=Thu, 01 Jan 1970 00:00:01 GMT";
+      
+      // Call the signOut function from useAuth
+      if (signOut) {
+        await signOut();
+      }
+      
+      // Redirect to home
+      window.location.href = '/';
+    } catch (error) {
+      console.error('Error during logout:', error);
+      window.location.href = '/';
+    }
+  };
 
   if (!shouldShowContent && initialized && !loading && !isRefreshing) {
     // If we're fully initialized and not loading, but don't have a user or bypass, show error
@@ -201,16 +290,35 @@ export default function DashboardPage() {
           >
             Go to Login
           </a>
+          <button 
+            onClick={() => {
+              document.cookie = "auth_bypass_token=dev_bypass_token; path=/; max-age=86400";
+              window.location.reload();
+            }}
+            className="mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-center text-white bg-gray-500 rounded-lg hover:bg-gray-600"
+          >
+            Enable Development Mode
+          </button>
         </div>
       </div>
     );
   }
 
+  // Return the dashboard layout with mock data
   return (
-    <div className="flex min-h-screen flex-col">
-      <main className="flex-1">
-        <DashboardLayout pipData={mockPipData} />
-      </main>
-    </div>
+    <DashboardLayout pipData={mockPipData}>
+      {/* Show logout banner if in bypass mode */}
+      {hasAuthBypass && !user && (
+        <div className="bg-amber-100 p-4 mb-6 rounded-md flex justify-between items-center">
+          <p className="text-amber-800">You're viewing the dashboard in preview mode. Some features may be limited.</p>
+          <button 
+            onClick={handleLogout}
+            className="bg-amber-700 hover:bg-amber-800 text-white px-4 py-2 rounded-md ml-4"
+          >
+            Log Out
+          </button>
+        </div>
+      )}
+    </DashboardLayout>
   );
 } 

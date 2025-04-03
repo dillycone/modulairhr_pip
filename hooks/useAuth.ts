@@ -65,6 +65,13 @@ export const useAuth = () => {
       ...updates,
       initialized: true,
     }));
+    // Add debug logging for auth state updates
+    console.log('Auth state updated:', { 
+      ...updates,
+      hasUser: !!updates.user,
+      userEmail: updates.user?.email,
+      hasSession: !!updates.session
+    });
   };
 
   useEffect(() => {
@@ -249,8 +256,15 @@ export const useAuth = () => {
   // User signin function with remember me option
   const signIn = async ({ email, password, rememberMe = false }: SignInOptions): Promise<AuthResponse> => {
     try {
+      console.log('Sign in started for:', email);
       setState(prev => ({ ...prev, loading: true, error: null }));
       
+      // First, ensure no lingering session
+      console.log('Ensuring clean session state before login');
+      await supabase.auth.signOut({ scope: 'local' });
+      
+      // Try login with password
+      console.log('Attempting to sign in with password');
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -267,18 +281,40 @@ export const useAuth = () => {
         return { data: null, error: processedError };
       }
 
+      console.log('Sign in successful:', { 
+        hasSession: !!data?.session,
+        hasUser: !!data?.user,
+        sessionExpiresAt: data?.session?.expires_at 
+      });
+
       // Handle session persistence
       if (!rememberMe && data.session) {
         try {
+          console.log('Setting up temporary session for non-remember-me login');
           localStorage.setItem('session_preference', 'temporary');
           localStorage.setItem('session_start_time', Date.now().toString());
         } catch (e) {
           console.error('Error setting up session expiration:', e);
         }
+      } else if (rememberMe) {
+        console.log('Setting up persistent session for remember-me login');
+        // Set a cookie as backup authentication
+        document.cookie = "auth_session_backup=true; path=/; max-age=2592000"; // 30 days
       }
       
+      // Force refresh session data
+      console.log('Refreshing session state after login');
+      const { data: refreshData } = await supabase.auth.getSession();
+      console.log('Session refresh result:', { 
+        hasSession: !!refreshData?.session,
+        sessionExpiresAt: refreshData?.session?.expires_at 
+      });
+      
+      // Update auth state with the refreshed session data
       setState(prev => ({
         ...prev,
+        user: refreshData?.session?.user || data?.user || null,
+        session: refreshData?.session || data?.session || null,
         loading: false,
         error: null
       }));
@@ -326,7 +362,8 @@ export const useAuth = () => {
     try {
       setState(prev => ({ ...prev, loading: true, error: null }));
       
-      const { error } = await supabase.auth.signOut();
+      // Perform a global signout to ensure all sessions are cleared
+      const { error } = await supabase.auth.signOut({ scope: 'global' });
       
       if (error) {
         console.error('Signout error:', error);
@@ -337,6 +374,18 @@ export const useAuth = () => {
           error: processedError
         }));
         return { error: processedError };
+      }
+      
+      // Clean up local storage items
+      try {
+        localStorage.removeItem('supabase.auth.token');
+        localStorage.removeItem('supabase.auth.error');
+        sessionStorage.removeItem('supabase.auth.token');
+        sessionStorage.removeItem('supabase.auth.error');
+        localStorage.removeItem('session_preference');
+        localStorage.removeItem('session_start_time');
+      } catch (e) {
+        console.error('Error clearing storage during signout:', e);
       }
       
       setState(prev => ({
