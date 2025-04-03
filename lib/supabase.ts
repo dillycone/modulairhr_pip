@@ -27,13 +27,52 @@ const createSupabaseClient = () => {
         persistSession: true,
         autoRefreshToken: true,
         debug: process.env.NODE_ENV === 'development',
-        // Better cookie settings for cross-domain authentication
-        cookieOptions: {
-          name: 'sb-auth-token',
-          lifetime: 60 * 60 * 24 * 7, // 7 days
-          domain: process.env.NODE_ENV === 'production' ? 'pipassistant.com' : undefined, // Set domain for production
-          path: '/',
-          sameSite: 'lax'
+        detectSessionInUrl: true,
+        flowType: 'implicit',
+        storage: {
+          getItem: (key) => {
+            try {
+              if (typeof window === 'undefined') return null;
+              return window.localStorage.getItem(key);
+            } catch (error) {
+              console.error('Error reading from localStorage:', error);
+              return null;
+            }
+          },
+          setItem: (key, value) => {
+            try {
+              if (typeof window === 'undefined') return;
+              window.localStorage.setItem(key, value);
+            } catch (error) {
+              console.error('Error writing to localStorage:', error);
+            }
+          },
+          removeItem: (key) => {
+            try {
+              if (typeof window === 'undefined') return;
+              window.localStorage.removeItem(key);
+            } catch (error) {
+              console.error('Error removing from localStorage:', error);
+            }
+          }
+        },
+        storageKey: 'supabase.auth.token'
+      },
+      global: {
+        headers: {
+          'X-Client-Info': 'supabase-js-web'
+        },
+        fetch: (...args) => {
+          return fetch(...args).then(async (response) => {
+            if (!response.ok) {
+              const error = await response.json().catch(() => ({}));
+              throw new Error(error.message || `HTTP error! status: ${response.status}`);
+            }
+            return response;
+          }).catch(error => {
+            console.error('Fetch error:', error);
+            throw error;
+          });
         }
       }
     });

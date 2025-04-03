@@ -68,6 +68,8 @@ export function SignUpForm({ onSignUpSuccess }: SignUpFormProps) {
           })
           setIsLoading(false)
           return
+        } else if (authResponse.error.message.includes('Load failed')) {
+          throw new Error('Unable to connect to the authentication service. Please check your internet connection and try again.')
         } else {
           throw new Error(authResponse.error.message || 'Signup failed')
         }
@@ -81,9 +83,13 @@ export function SignUpForm({ onSignUpSuccess }: SignUpFormProps) {
 
     } catch (error: any) {
       console.error('Signup error:', error)
+      const errorMessage = error.message.includes('Load failed') 
+        ? 'Unable to connect to the authentication service. Please check your internet connection and try again.'
+        : error.message || 'An error occurred during signup'
+      
       toast({
         title: 'Error',
-        description: error.message || 'An error occurred during signup',
+        description: errorMessage,
         variant: 'destructive',
       })
     } finally {
