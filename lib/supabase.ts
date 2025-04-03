@@ -22,10 +22,18 @@ function createSupabaseClient() {
 
   try {
     console.log('Initializing Supabase client');
+    
+    // Check if we have an existing session in localStorage
+    let hasExistingSession = false;
+    if (typeof window !== 'undefined') {
+      const authToken = window.localStorage.getItem('supabase.auth.token');
+      hasExistingSession = !!authToken;
+    }
+    
     const client = createClient(supabaseUrl, supabaseAnonKey, {
       auth: {
         persistSession: true,
-        autoRefreshToken: true,
+        autoRefreshToken: hasExistingSession, // Only auto-refresh if we have a session
         debug: process.env.NODE_ENV === 'development',
         detectSessionInUrl: true,
         flowType: 'pkce',
@@ -82,6 +90,23 @@ function createSupabaseClient() {
     throw new Error('Failed to initialize Supabase client');
   }
 };
+
+// Utility function to update autoRefreshToken setting
+export function updateAutoRefreshToken(enabled: boolean) {
+  try {
+    // @ts-ignore - accessing internal property of the client
+    if (supabase.auth && typeof supabase.auth.autoRefreshToken !== 'undefined') {
+      console.log(`Setting autoRefreshToken to: ${enabled}`);
+      // @ts-ignore - modifying internal property
+      supabase.auth.autoRefreshToken = enabled;
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('Error updating autoRefreshToken setting:', error);
+    return false;
+  }
+}
 
 // Export a single instance of the client
 export const supabase = createSupabaseClient(); 

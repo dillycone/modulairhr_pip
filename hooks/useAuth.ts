@@ -5,6 +5,7 @@ import { debugLog } from '@/lib/debug';
 import { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 import { translateError } from '@/lib/error-helpers';
+import { updateAutoRefreshToken } from '@/lib/supabase';
 
 // Auth hook interface
 interface AuthError {
@@ -74,6 +75,10 @@ export const useAuth = () => {
           updateAuthState({ loading: false, error: { message: translateError(sessionError), code: 'init-fail', original: sessionError }});
           return;
         }
+        
+        // Update autoRefreshToken setting based on whether we have a session
+        updateAutoRefreshToken(!!session);
+        
         updateAuthState({ session, user: session?.user || null, loading: false, error: null });
         debugLog('Auth session established:', { user: session?.user?.email });
 
@@ -87,6 +92,7 @@ export const useAuth = () => {
               switch (event) {
                 case 'SIGNED_IN':
                   debugLog('SIGNED_IN event');
+                  updateAutoRefreshToken(true);
                   updateAuthState({
                     session: newSession,
                     user: newSession?.user ?? null,
@@ -97,6 +103,7 @@ export const useAuth = () => {
                   
                 case 'SIGNED_OUT':
                   debugLog('SIGNED_OUT event');
+                  updateAutoRefreshToken(false);
                   updateAuthState({
                     session: null,
                     user: null,
@@ -113,6 +120,7 @@ export const useAuth = () => {
                   break;
                   
                 case 'USER_UPDATED':
+                  updateAutoRefreshToken(true);
                   updateAuthState({
                     session: newSession,
                     user: newSession?.user ?? null,
@@ -122,6 +130,7 @@ export const useAuth = () => {
                   break;
                   
                 case 'TOKEN_REFRESHED':
+                  updateAutoRefreshToken(true);
                   updateAuthState({
                     session: newSession,
                     user: newSession?.user ?? null,
@@ -132,6 +141,7 @@ export const useAuth = () => {
                   
                 default:
                   debugLog('Auth event:', event);
+                  updateAutoRefreshToken(!!newSession);
                   updateAuthState({
                     session: newSession,
                     user: newSession?.user ?? null,
@@ -228,6 +238,9 @@ export const useAuth = () => {
         return { data: null, error: processed };
       }
 
+      // Once successfully authenticated, enable autoRefreshToken
+      updateAutoRefreshToken(true);
+
       // Done - refresh session data if needed
       const { data: refreshData } = await supabase.auth.getSession();
       updateAuthState({
@@ -249,18 +262,26 @@ export const useAuth = () => {
   const signOut = async (): Promise<{ error: AuthError | null }> => {
     try {
       updateAuthState({ loading: true, error: null });
-      const { error: signoutError } = await supabase.auth.signOut({ scope: 'global' });
-      if (signoutError) {
-        debugLog('Signout error:', signoutError);
-        const processedError = { message: translateError(signoutError), code: 'signout-fail', original: signoutError };
+      
+      // First disable token refresh as we're signing out
+      updateAutoRefreshToken(false);
+      
+      // Now sign out
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        const processedError = { message: translateError(error), code: 'signout-fail' };
         updateAuthState({ loading: false, error: processedError });
         return { error: processedError };
       }
-      debugLog('User signed out globally');
-      updateAuthState({ user: null, session: null, loading: false, error: null });
+
+      updateAuthState({
+        user: null,
+        session: null,
+        loading: false,
+        error: null
+      });
       return { error: null };
     } catch (error: any) {
-      console.error('Unexpected error during signout:', error);
       const processedError = { message: translateError(error), code: 'signout-fail' };
       updateAuthState({ loading: false, error: processedError });
       return { error: processedError };
