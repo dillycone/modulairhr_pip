@@ -17,7 +17,6 @@ interface AuthState {
   session: Session | null;
   loading: boolean;
   error: AuthError | null;
-  initialized: boolean;
 }
 
 interface AuthResponse {
@@ -31,16 +30,13 @@ export const useAuth = () => {
     session: null,
     loading: true,
     error: null,
-    initialized: false,
   });
-  const [mounted, setMounted] = useState(false);
 
   // Update auth state in a consistent way
   const updateAuthState = (updates: Partial<AuthState>) => {
     setState(prev => ({
       ...prev,
       ...updates,
-      initialized: true,
     }));
     // Add debug logging for auth state updates
     debugLog('Auth state updated:', { 
@@ -55,8 +51,6 @@ export const useAuth = () => {
     let authStateSubscription: { subscription?: { unsubscribe: () => void } } = {};
 
     const initializeAuth = async () => {
-      setMounted(true);
-
       try {
         // getSession, subscribe to changes...
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
@@ -87,6 +81,7 @@ export const useAuth = () => {
                     loading: false,
                     error: null
                   });
+                  break;
                 case 'SIGNED_OUT':
                   debugLog('SIGNED_OUT event');
                   updateAuthState({
@@ -103,7 +98,6 @@ export const useAuth = () => {
                     console.error('Error clearing session data:', e);
                   }
                   break;
-                  
                 case 'USER_UPDATED':
                   updateAuthState({
                     session: newSession,
@@ -186,6 +180,43 @@ export const useAuth = () => {
     }
   };
 
+  // Sign up
+  const signUp = async (email: string, password: string): Promise<AuthResponse> => {
+    try {
+      debugLog('Sign up started for:', email);
+      updateAuthState({ loading: true, error: null });
+
+      // Attempt sign up
+      const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: window.location.origin + '/auth/callback',
+        },
+      });
+
+      if (error) {
+        const processed = { message: translateError(error), code: 'signup-fail', original: error };
+        debugLog('Signup error:', error);
+        updateAuthState({ loading: false, error: processed });
+        return { data: null, error: processed };
+      }
+
+      // signUp typically requires email confirmation; session may be null
+      updateAuthState({
+        user: data.user ?? null,
+        session: data.session ?? null,
+        loading: false,
+        error: null
+      });
+      return { data, error: null };
+    } catch (error: any) {
+      const processed = { message: translateError(error), code: 'signup-fail' };
+      updateAuthState({ loading: false, error: processed });
+      return { data: null, error: processed };
+    }
+  };
+
   // Sign out
   const signOut = async (): Promise<{ error: AuthError | null }> => {
     try {
@@ -211,26 +242,66 @@ export const useAuth = () => {
       return { error: processedError };
     }
   };
- 
-  // Reset password
+
+  /**
+   * Send a password reset email.
+   * This triggers a link to be sent to the user, with Supabase's built-in flow.
+   */
   const resetPassword = async (email: string): Promise<AuthResponse> => {
-    // Ok to keep as is, just skipping unneeded complexity 
     try {
-      setState(prev => ({ ...prev, loading: true, error: null }));
-      debugLog(`Resetting password for: ${email}`);
-      // ... rest of resetPassword code
-      
-      // I'll return the existing state values to maintain the proper structure
-      return {
-        data: state.user,
-        error: state.error
-      };
-    } catch (error) {
-      // Handle the error
-      return {
-        data: null,
-        error: { message: translateError(error), code: 'reset-fail' }
-      };
+      updateAuthState({ loading: true, error: null });
+      debugLog('Resetting password via email for:', email);
+
+      const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: window.location.origin + '/auth/update-password'
+      });
+
+      if (error) {
+        const processedError = { message: translateError(error), code: 'reset-fail', original: error };
+        updateAuthState({ loading: false, error: processedError });
+        return { data: null, error: processedError };
+      }
+
+      updateAuthState({ loading: false, error: null });
+      return { data, error: null };
+    } catch (error: any) {
+      const processedError = { message: translateError(error), code: 'reset-fail', original: error };
+      debugLog('Error resetting password:', processedError);
+      updateAuthState({ loading: false, error: processedError });
+      return { data: null, error: processedError };
+    }
+  };
+
+  /**
+   * Update the user password if they already have a session (e.g. from a reset link).
+   */
+  const updatePassword = async (newPassword: string): Promise<AuthResponse> => {
+    try {
+      updateAuthState({ loading: true, error: null });
+      debugLog('Updating user password...');
+
+      const { data, error } = await supabase.auth.updateUser({ password: newPassword });
+      if (error) {
+        const processedError = { message: translateError(error), code: 'update-password-fail', original: error };
+        updateAuthState({ loading: false, error: processedError });
+        return { data: null, error: processedError };
+      }
+
+      // Re-fetch session after update
+      const { data: fresh } = await supabase.auth.getSession();
+      updateAuthState({
+        user: fresh.session?.user ?? data?.user ?? null,
+        session: fresh.session ?? null,
+        loading: false,
+        error: null
+      });
+
+      return { data, error: null };
+    } catch (error: any) {
+      const processedError = { message: translateError(error), code: 'update-password-fail' };
+      debugLog('Error updating password:', processedError);
+      updateAuthState({ loading: false, error: processedError });
+      return { data: null, error: processedError };
     }
   };
 
@@ -240,11 +311,10 @@ export const useAuth = () => {
     session: state.session,
     loading: state.loading,
     error: state.error,
-    initialized: state.initialized,
-    mounted,
     signIn,
     signOut,
+    signUp,
     resetPassword,
-    // Include any other methods that might be in the original hook
+    updatePassword,
   };
 } 
