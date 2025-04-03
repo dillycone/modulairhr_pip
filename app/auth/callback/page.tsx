@@ -1,11 +1,12 @@
 'use client';
 
 import { useEffect, useState, Suspense } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
 function AuthCallbackContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState<string>('Processing authentication...');
 
@@ -14,45 +15,55 @@ function AuthCallbackContent() {
       try {
         setStatus('Processing authentication response...');
 
-        try { localStorage.removeItem('auth_redirect_attempt'); } catch(_) {}
-
-        const urlParams = new URLSearchParams(window.location.search);
-        const hasCode = urlParams.has('code');
-        if (hasCode) {
-          try {
-            const { data: exchangeData, error: exchangeError } = await supabase.auth.exchangeCodeForSession(window.location.href);
+        const code = searchParams.get('code');
+        const redirectTo = searchParams.get('redirect') || '/dashboard';
+        
+        if (code) {
+          // Exchange the code for a session (stores in cookie)
+          const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code);
             
-            if (exchangeError) {
-              setError(`Authentication error: ${exchangeError.message}`);
-              return;
-            }
-            
-            if (!exchangeData.session) {
-              setError('No session was created. Please try again.');
-              return;
-            }
-            
-            router.push('/dashboard');
-            return;
-          } catch (ex: any) {
-            setError(`Authentication error: ${ex.message}`);
+          if (exchangeError) {
+            setStatus('Authentication error, redirecting to login...');
+            console.error('Exchange error:', exchangeError);
+            setTimeout(() => {
+              router.push('/auth/login');
+            }, 2000);
             return;
           }
-        }
-
-        // Check for existing session
-        const { data, error: sessionErr } = await supabase.auth.getSession();
-        if (sessionErr || !data.session) {
-          setError('No auth session found. Please log in again.');
+          
+          // Check session to confirm it worked
+          const { data, error: sessionError } = await supabase.auth.getSession();
+          
+          if (sessionError || !data.session) {
+            setStatus('Session error, redirecting to login...');
+            console.error('Session error:', sessionError);
+            setTimeout(() => {
+              router.push('/auth/login');
+            }, 2000);
+            return;
+          }
+          
+          // Success - redirect to dashboard or the specified redirect path
+          setStatus(`Authentication successful, redirecting to ${redirectTo}...`);
+          router.push(redirectTo);
+          return;
+        } else {
+          setStatus('No authentication code found, redirecting to login...');
+          setTimeout(() => {
+            router.push('/auth/login');
+          }, 2000);
         }
       } catch (err: any) {
         console.error('Auth callback error:', err);
         setError(`Authentication failed: ${err.message || 'Unknown error'}`);
+        setTimeout(() => {
+          router.push('/auth/login');
+        }, 3000);
       }
     }
 
     handleAuthCallback();
-  }, [router]);
+  }, [router, searchParams]);
 
   return (
     <div className="flex min-h-screen items-center justify-center p-4">

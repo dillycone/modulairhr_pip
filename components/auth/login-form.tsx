@@ -4,6 +4,7 @@ import { useState } from "react"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import Link from 'next/link'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { z } from 'zod'
 import { useAuth } from "@/hooks/useAuth"
 import { AuthError } from "@/components/ui/auth-error"
@@ -18,13 +19,16 @@ const loginSchema = z.object({
 type LoginFormValues = z.infer<typeof loginSchema>
 
 interface LoginFormProps {
-  onLoginSuccess: () => void
+  onLoginSuccess?: () => void
   initialRedirectTo?: string
 }
 
 export function LoginForm({ onLoginSuccess, initialRedirectTo = '/dashboard' }: LoginFormProps) {
   const [isLoading, setIsLoading] = useState(false)
   const { signIn, error: authError } = useAuth()
+  const router = useRouter()
+  const searchParams = useSearchParams()
+  const redirectTo = searchParams.get('redirect') || initialRedirectTo
   
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
@@ -55,14 +59,13 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = '/dashboard' }: 
         return
       }
 
-      try {
-        localStorage.removeItem('auth_redirect_attempt');
-      } catch (e) {
-        console.error('Failed to clear redirect attempt flag:', e);
+      console.log('Login successful, redirecting to:', redirectTo)
+      
+      if (onLoginSuccess) {
+        onLoginSuccess();
+      } else {
+        router.push(redirectTo);
       }
-
-      console.log('Login successful, calling onLoginSuccess ...')
-      onLoginSuccess();
     } catch (error: any) {
       console.error('Login error:', error)
       form.setError('root', {

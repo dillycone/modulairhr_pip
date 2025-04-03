@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { debugLog } from '@/lib/debug';
-import { supabase } from '../lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { translateError } from '@/lib/error-helpers';
 import type { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 
@@ -48,26 +48,32 @@ export const useAuth = () => {
   };
 
   useEffect(() => {
-    let authStateSubscription: { subscription?: { unsubscribe: () => void } } = {};
+    let mounted = true;
+    let authStateSubscription: { data?: { subscription: { unsubscribe: () => void } } } = {};
 
     const initializeAuth = async () => {
       try {
-        // getSession, subscribe to changes...
+        // Get the initial session from cookies
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (sessionError) {
           debugLog('Error getting session:', sessionError);
-          updateAuthState({ loading: false, error: { 
-            message: translateError(sessionError), 
-            code: 'init-fail', 
-            original: sessionError 
-          }});
+          if (mounted) {
+            updateAuthState({ loading: false, error: { 
+              message: translateError(sessionError), 
+              code: 'init-fail', 
+              original: sessionError 
+            }});
+          }
           return;
         }
 
-        updateAuthState({ session, user: session?.user || null, loading: false, error: null });
+        if (mounted) {
+          updateAuthState({ session, user: session?.user || null, loading: false, error: null });
+        }
         debugLog('Auth session established:', { user: session?.user?.email });
 
-        const { data: { subscription } } = supabase.auth.onAuthStateChange(
+        // Subscribe to auth changes
+        authStateSubscription = supabase.auth.onAuthStateChange(
           async (event: AuthChangeEvent, newSession: Session | null) => {
             debugLog('Auth state changed:', event);
 
@@ -75,61 +81,73 @@ export const useAuth = () => {
               switch (event) {
                 case 'SIGNED_IN':
                   debugLog('SIGNED_IN event');
-                  updateAuthState({
-                    session: newSession,
-                    user: newSession?.user ?? null,
-                    loading: false,
-                    error: null
-                  });
+                  if (mounted) {
+                    updateAuthState({
+                      session: newSession,
+                      user: newSession?.user ?? null,
+                      loading: false,
+                      error: null
+                    });
+                  }
                   break;
                 case 'SIGNED_OUT':
                   debugLog('SIGNED_OUT event');
-                  updateAuthState({
-                    session: null,
-                    user: null,
-                    loading: false,
-                    error: null
-                  });
-                  // Clear any session-related data
-                  try {
-                    localStorage.removeItem('session_preference');
-                    localStorage.removeItem('session_start_time');
-                  } catch (e) {
-                    console.error('Error clearing session data:', e);
+                  if (mounted) {
+                    updateAuthState({
+                      session: null,
+                      user: null,
+                      loading: false,
+                      error: null
+                    });
                   }
                   break;
                 case 'USER_UPDATED':
-                  updateAuthState({
-                    session: newSession,
-                    user: newSession?.user ?? null,
-                    loading: false,
-                    error: null
-                  });
+                  if (mounted) {
+                    updateAuthState({
+                      session: newSession,
+                      user: newSession?.user ?? null,
+                      loading: false,
+                      error: null
+                    });
+                  }
                   break;
-
+                case 'TOKEN_REFRESHED':
+                  if (mounted) {
+                    updateAuthState({
+                      session: newSession,
+                      user: newSession?.user ?? null,
+                      loading: false,
+                      error: null
+                    });
+                  }
+                  break;
                 default:
                   debugLog('Auth event:', event);
-                  updateAuthState({
-                    session: newSession,
-                    user: newSession?.user ?? null,
-                    loading: false,
-                    error: null
-                  });
+                  if (mounted) {
+                    updateAuthState({
+                      session: newSession,
+                      user: newSession?.user ?? null,
+                      loading: false,
+                      error: null
+                    });
+                  }
               }
             } catch (error: unknown) {
               const msg = translateError(error);
               debugLog('Error in auth state change handler:', msg);
-              updateAuthState({ 
-                error: { message: msg, code: 'auth-change', original: error }
-              });
+              if (mounted) {
+                updateAuthState({ 
+                  error: { message: msg, code: 'auth-change', original: error }
+                });
+              }
             }
           }
         );
-
-        authStateSubscription.subscription = subscription;
       } catch (error: unknown) {
         const msg = translateError(error);
-        updateAuthState({ loading: false, error: { message: msg, code: 'init-fail', original: error }});
+        if (mounted) {
+          updateAuthState({ loading: false, error: { message: msg, code: 'init-fail', original: error }});
+        }
         debugLog('Error initializing auth:', msg);
       }
     };
@@ -138,8 +156,9 @@ export const useAuth = () => {
 
     // Cleanup function
     return () => {
+      mounted = false;
       try {
-        authStateSubscription.subscription?.unsubscribe();
+        authStateSubscription.data?.subscription?.unsubscribe();
       } catch (error: any) {
         console.error('Error unsubscribing from auth listener:', error);
       }

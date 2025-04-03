@@ -1,4 +1,4 @@
-import { createServerClient, type CookieOptions } from '@supabase/ssr';
+import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse, type NextRequest } from 'next/server';
 
 const PROTECTED_ROUTES = [
@@ -9,7 +9,7 @@ const PROTECTED_ROUTES = [
 
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
-  let response = NextResponse.next({ request: { headers: req.headers } });
+  let response = NextResponse.next();
   console.log(`Middleware processing: ${pathname}`);
 
   try {
@@ -18,29 +18,11 @@ export async function middleware(req: NextRequest) {
       console.log('Dev environment: we skip or lighten auth checks if desired');
     }
 
-    const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-      {
-        cookies: {
-          get(name: string) {
-            const cookie = req.cookies.get(name);
-            return cookie?.value;
-          },
-          set(name: string, value: string, options: CookieOptions) {
-            response.cookies.set({ name, value, ...options });
-          },
-          remove(name: string, options: CookieOptions) {
-            response.cookies.set({ name, value: '', ...options });
-          },
-        },
-      }
-    );
+    // Create a Supabase client configured to use cookies
+    const supabase = createMiddlewareClient({ req, res: response });
 
-    const { data: { session }, error } = await supabase.auth.getSession();
-    if (error) {
-      console.error('Error getting session:', error);
-    }
+    // This updates the session cookie if it exists and is expired
+    const { data: { session } } = await supabase.auth.getSession();
 
     if (!session && PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
       console.log(`No session for protected route: ${pathname}, redirecting`);

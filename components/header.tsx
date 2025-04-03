@@ -51,10 +51,11 @@ export default function Header() {
 
   const handleSignOut = async () => {
     try {
-      // We no longer manually clear cookies. Let supabase.auth.signOut handle it.
       await signOut();
-      // If signOut is successful, you can do a client redirect, or rely on the user seeing logged-out states:
+      // After successful sign out, redirect to home page
       router.push('/');
+      // For a more reliable redirect, you can also use:
+      // window.location.href = '/';
     } catch (error) {
       console.error('Error during sign out:', error);
       router.push('/');
