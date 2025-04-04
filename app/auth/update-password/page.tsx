@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ResetOrUpdatePasswordForm } from '@/app/sections/ResetOrUpdatePasswordForm';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../../../components/ui/card";
+import { PasswordForm } from "../../../components/auth/password-form";
 
 export default function UpdatePasswordPage() {
   return (
@@ -14,9 +14,9 @@ export default function UpdatePasswordPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <ResetOrUpdatePasswordForm mode="update" onSuccess={() => window.location.href = '/auth/login'} />
+          <PasswordForm mode="update" onSuccess={() => window.location.href = "/auth/login"} />
         </CardContent>
       </Card>
     </div>
   );
-} 
+}
