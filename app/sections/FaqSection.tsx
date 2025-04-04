@@ -1,4 +1,4 @@
-import FaqAccordion from "@/components/faq-accordion"
+import FaqAccordion from "@/components/faq/faq-accordion"
 import { Badge } from "@/components/ui/badge"
 
 export default function FaqSection() {
@@ -16,7 +16,7 @@ export default function FaqSection() {
             </p>
           </div>
         </div>
-        <div className="max-w-3xl mx-auto mt-12">
+        <div className="mx-auto max-w-3xl">
           <FaqAccordion />
         </div>
       </div>
