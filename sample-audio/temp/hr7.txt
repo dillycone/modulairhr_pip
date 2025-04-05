@@ -1,0 +1,1 @@
+You'll need concrete examples of the performance issues, clear expectations moving forward, and specific metrics for measuring improvement. We should also discuss what support or resources Alex might need.
