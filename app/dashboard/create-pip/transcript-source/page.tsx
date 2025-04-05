@@ -40,22 +40,22 @@ export default function TranscriptSourcePage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Saved Transcripts */}
-        <Card className="hover:shadow-md transition-shadow duration-300">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
+        <Card className="hover:shadow-md transition-shadow duration-300 flex flex-col h-[400px]">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto mb-5 h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
               <FileText className="h-6 w-6 text-indigo-600" />
             </div>
-            <CardTitle>Saved Transcripts</CardTitle>
-            <CardDescription>
+            <CardTitle className="mb-3">Start with a Saved Transcript</CardTitle>
+            <CardDescription className="text-base">
               Choose from previously saved transcripts in your account.
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center text-sm text-gray-500">
-            <p>Access transcripts from previous meetings or imported files.</p>
+          <CardContent className="text-center text-gray-500 pb-0 flex-grow">
+            <p className="text-sm">Access transcripts from previous meetings or imported files.</p>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="mt-auto">
             <Button 
               onClick={handleSavedTranscripts} 
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
@@ -66,20 +66,20 @@ export default function TranscriptSourcePage() {
         </Card>
 
         {/* Upload Audio File */}
-        <Card className="hover:shadow-md transition-shadow duration-300">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
+        <Card className="hover:shadow-md transition-shadow duration-300 flex flex-col h-[400px]">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto mb-5 h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
               <Upload className="h-6 w-6 text-indigo-600" />
             </div>
-            <CardTitle>Upload Audio</CardTitle>
-            <CardDescription>
+            <CardTitle className="mb-3">Use an Audio Recording to Generate a Transcript</CardTitle>
+            <CardDescription className="text-base">
               Upload an audio recording to be transcribed automatically.
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center text-sm text-gray-500">
-            <p>Supports MP3, WAV, M4A, and other common audio formats.</p>
+          <CardContent className="text-center text-gray-500 pb-0 flex-grow">
+            <p className="text-sm">Supports MP3, WAV, M4A, and other common audio formats.</p>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="mt-auto">
             <Button 
               onClick={handleUploadAudio} 
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
@@ -90,20 +90,20 @@ export default function TranscriptSourcePage() {
         </Card>
 
         {/* Record New */}
-        <Card className="hover:shadow-md transition-shadow duration-300">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
+        <Card className="hover:shadow-md transition-shadow duration-300 flex flex-col h-[400px]">
+          <CardHeader className="text-center pb-2">
+            <div className="mx-auto mb-5 h-12 w-12 rounded-full bg-indigo-100 flex items-center justify-center">
               <Mic className="h-6 w-6 text-indigo-600" />
             </div>
-            <CardTitle>Record Conversation</CardTitle>
-            <CardDescription>
+            <CardTitle className="mb-3">Record a New Conversation and Generate a Transcript</CardTitle>
+            <CardDescription className="text-base">
               Start a new recording session directly in the app.
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center text-sm text-gray-500">
-            <p>Record and transcribe meetings or conversations in real-time.</p>
+          <CardContent className="text-center text-gray-500 pb-0 flex-grow">
+            <p className="text-sm">Record and transcribe meetings or conversations in real-time.</p>
           </CardContent>
-          <CardFooter>
+          <CardFooter className="mt-auto">
             <Button 
               onClick={handleRecordNew} 
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
