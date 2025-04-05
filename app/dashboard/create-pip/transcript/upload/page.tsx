@@ -30,17 +30,20 @@ export default function UploadAudioPage() {
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     setError(null);
+    setSuccess(false); // Reset success state on new file selection
     
     if (selectedFile) {
       // Check if file is an audio file
       if (!selectedFile.type.startsWith('audio/')) {
         setError('Please upload an audio file (MP3, WAV, M4A, etc.)');
+        setFile(null); // Clear invalid file
         return;
       }
       
       // Check file size (max 100MB)
       if (selectedFile.size > 100 * 1024 * 1024) {
         setError('File size exceeds 100MB limit');
+        setFile(null); // Clear invalid file
         return;
       }
       
@@ -60,24 +63,36 @@ export default function UploadAudioPage() {
 
     setIsUploading(true);
     setError(null);
+    setSuccess(false);
+
+    const formData = new FormData();
+    formData.append('file', file);
 
     try {
-      // In a real application, you would upload the file to your server or cloud storage
-      // and then process it for transcription
+      const response = await fetch('/api/transcribe', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Transcription failed');
+      }
       
-      // Simulate upload process
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      // Store transcript in Session Storage
+      sessionStorage.setItem('uploadedTranscript', result.transcript);
       
-      // For demo purposes, we're just simulating success
       setSuccess(true);
       
-      // Redirect to transcript editing page after successful upload
+      // Redirect to transcript editing page after a short delay to show success message
       setTimeout(() => {
         router.push('/dashboard/create-pip/transcript/edit');
       }, 1500);
       
     } catch (err) {
-      setError('Error uploading file. Please try again.');
+      const errorMessage = err instanceof Error ? err.message : 'Error uploading or transcribing file. Please try again.';
+      setError(errorMessage);
       console.error(err);
     } finally {
       setIsUploading(false);
@@ -168,7 +183,7 @@ export default function UploadAudioPage() {
 
             {success && (
               <Alert className="bg-green-50 text-green-800 border-green-200">
-                <AlertDescription>File uploaded successfully! Generating transcript...</AlertDescription>
+                <AlertDescription>File uploaded and transcript generated! Redirecting to editor...</AlertDescription>
               </Alert>
             )}
 
@@ -181,7 +196,7 @@ export default function UploadAudioPage() {
                 {isUploading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Uploading...
+                    Uploading & Transcribing...
                   </>
                 ) : (
                   'Upload and Generate Transcript'

@@ -132,8 +132,40 @@ export default function Header() {
               </Link>
             </>
           )}
-          {/* Placeholder for authenticated user UI if needed in the future */}
-          {/* {isClient && !loading && user && (<> Authenticated UI </>)} */}
+          {/* Show User Dropdown when client-side, not loading, user exists, AND not on an authenticated route */}
+          {isClient && !loading && user && !isAuthenticatedRoute && (
+             <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.user_metadata?.avatar_url || undefined} alt={user.email || 'User'} />
+                    <AvatarFallback>{user.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-56" align="end" forceMount>
+                <DropdownMenuLabel className="font-normal">
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">My Account</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={navigateToDashboard}>
+                  <LayoutDashboard className="mr-2 h-4 w-4" />
+                  <span>Dashboard</span>
+                </DropdownMenuItem>
+                {/* Add other relevant links like Settings if needed */}
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600 focus:bg-red-50">
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
         <button
           className="flex items-center justify-center rounded-md p-2 md:hidden"
@@ -205,9 +237,43 @@ export default function Header() {
                     Get Started
                   </Button>
                 </Link>
+                <DropdownMenuSeparator /> {/* Separator before user section */}
               </>
             )}
-            {/* Placeholder for authenticated user mobile menu items if needed */}
+            {/* Show User Info/Actions when client-side, not loading, user exists, AND not on an authenticated route */}
+             {isClient && !loading && user && !isAuthenticatedRoute && (
+              <>
+                <div className="flex items-center gap-3 px-1 py-2">
+                   <Avatar className="h-8 w-8">
+                    <AvatarImage src={user.user_metadata?.avatar_url || undefined} alt={user.email || 'User'} />
+                    <AvatarFallback>{user.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex flex-col space-y-1">
+                    <p className="text-sm font-medium leading-none">My Account</p>
+                    <p className="text-xs leading-none text-muted-foreground">
+                      {user.email}
+                    </p>
+                  </div>
+                </div>
+                <DropdownMenuSeparator />
+                 <Button
+                    variant="ghost"
+                    className="w-full justify-start text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
+                    onClick={(e) => { navigateToDashboard(e); setIsMenuOpen(false); }}
+                  >
+                    <LayoutDashboard className="mr-2 h-4 w-4" />
+                    <span>Dashboard</span>
+                  </Button>
+                 <Button
+                    variant="ghost"
+                    className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
+                    onClick={() => { handleSignOut(); setIsMenuOpen(false); }}
+                  >
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                 </Button>
+              </>
+            )}
           </nav>
         </div>
       )}

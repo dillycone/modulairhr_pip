@@ -1,26 +1,42 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Clock, Tag } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
+import { Loader2 } from "lucide-react";
 
-export default function EditTranscriptPage() {
-  const router = useRouter();
-  const [title, setTitle] = useState('Untitled Transcript');
-  const [transcript, setTranscript] = useState(
-    `[00:00:00] Speaker 1: Hello and welcome to our meeting.
+const PLACEHOLDER_TRANSCRIPT = 
+`[00:00:00] Speaker 1: Hello and welcome to our meeting.
 [00:00:05] Speaker 2: Thanks for having me. I'm excited to discuss the new project.
 [00:00:10] Speaker 1: Great! Let's start by outlining our objectives.
 [00:00:15] Speaker 2: Sounds good. I think we should focus on the key deliverables first.
 [00:00:22] Speaker 1: Agreed. The main deliverable is the new feature implementation.
 [00:00:30] Speaker 2: And what's the timeline for that?
-[00:00:35] Speaker 1: We're looking at a six-week development cycle.`
-  );
+[00:00:35] Speaker 1: We're looking at a six-week development cycle.`;
+
+export default function EditTranscriptPage() {
+  const router = useRouter();
+  const [title, setTitle] = useState('Untitled Transcript');
+  const [transcript, setTranscript] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const storedTranscript = sessionStorage.getItem('uploadedTranscript');
+      if (storedTranscript) {
+        setTranscript(storedTranscript);
+      } else {
+      }
+      setIsLoading(false);
+    } else {
+       setIsLoading(false);
+    }
+  }, []);
 
   const handleBack = () => {
     router.back();
@@ -29,14 +45,20 @@ export default function EditTranscriptPage() {
   const handleSave = async () => {
     setIsSaving(true);
     
-    // Simulate saving
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Navigate to next step
     router.push('/dashboard/create-pip/transcript/summarize');
     
     setIsSaving(false);
   };
+
+  if (isLoading) {
+    return (
+      <div className="max-w-4xl mx-auto p-8 flex justify-center items-center h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl mx-auto p-8">
@@ -74,11 +96,11 @@ export default function EditTranscriptPage() {
           <div className="flex flex-wrap gap-4">
             <div className="flex items-center text-sm text-gray-500">
               <Clock className="h-4 w-4 mr-1" />
-              <span>Duration: 5:45</span>
+              <span>Duration: --:--</span>
             </div>
             <div className="flex items-center text-sm text-gray-500">
               <Tag className="h-4 w-4 mr-1" />
-              <span>2 Speakers</span>
+              <span>Speakers: ?</span>
             </div>
           </div>
         </CardContent>
@@ -93,7 +115,7 @@ export default function EditTranscriptPage() {
             value={transcript}
             onChange={(e) => setTranscript(e.target.value)}
             className="min-h-[300px] font-mono text-sm"
-            placeholder="Transcript content will appear here..."
+            placeholder="Loading transcript... If this persists, try uploading again."
           />
         </CardContent>
         <CardFooter className="flex justify-end space-x-4">
@@ -105,7 +127,7 @@ export default function EditTranscriptPage() {
           </Button>
           <Button
             onClick={handleSave}
-            disabled={isSaving}
+            disabled={isSaving || transcript.trim() === ''}
             className="bg-indigo-600 hover:bg-indigo-700 text-white"
           >
             {isSaving ? 'Saving...' : 'Save and Continue'}
