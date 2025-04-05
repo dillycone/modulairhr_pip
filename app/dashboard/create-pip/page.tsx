@@ -24,15 +24,15 @@ export default function CreatePIP() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Manual Creation Card */}
-        <Card className="hover:shadow-md transition-shadow duration-300">
+        <Card className="hover:shadow-md transition-shadow duration-300 flex flex-col">
           <CardHeader className="text-center">
             <CardTitle>Create Manually</CardTitle>
             <CardDescription>
               Build your PIP from scratch by entering all details manually.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="h-40 flex items-center justify-center bg-muted/20 rounded-md">
+          <CardContent className="flex-grow flex items-center justify-center">
+            <div className="h-40 flex items-center justify-center">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="64"
@@ -60,15 +60,15 @@ export default function CreatePIP() {
         </Card>
 
         {/* Transcript Card */}
-        <Card className="hover:shadow-md transition-shadow duration-300">
+        <Card className="hover:shadow-md transition-shadow duration-300 flex flex-col">
           <CardHeader className="text-center">
             <CardTitle>Create From Transcript</CardTitle>
             <CardDescription>
               Use meeting transcripts to automatically generate a PIP with AI assistance.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="h-40 flex items-center justify-center bg-muted/20 rounded-md">
+          <CardContent className="flex-grow flex items-center justify-center">
+            <div className="h-40 flex items-center justify-center">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="64"
@@ -93,7 +93,7 @@ export default function CreatePIP() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button onClick={handleTranscriptCreate} variant="outline" className="w-full border-indigo-600 text-indigo-600 hover:bg-indigo-50">
+            <Button onClick={handleTranscriptCreate} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
               Start From Transcript
             </Button>
           </CardFooter>
