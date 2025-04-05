@@ -28,3 +28,6 @@ next-env.d.ts
 
 # repomix
 repomix-output.xml
+
+#sample-audio
+sample-audio/

@@ -3,6 +3,14 @@
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { 
+  Breadcrumb, 
+  BreadcrumbItem, 
+  BreadcrumbLink, 
+  BreadcrumbList, 
+  BreadcrumbPage, 
+  BreadcrumbSeparator 
+} from "@/components/ui/breadcrumb";
 
 export default function CreatePIP() {
   const router = useRouter();
@@ -17,6 +25,18 @@ export default function CreatePIP() {
 
   return (
     <div className="max-w-6xl mx-auto p-8">
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Create PIP</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      
       <div className="mb-8">
         <h1 className="text-3xl font-bold">Create Performance Improvement Plan</h1>
         <p className="text-muted-foreground mt-2">Choose how you would like to create your PIP</p>
