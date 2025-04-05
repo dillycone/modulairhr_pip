@@ -1,13 +1,32 @@
 "use client";
 import { cn } from "@/lib/utils";
-import { ReactNode } from "react";
+import { ReactNode, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { useAuth } from "@/hooks/useAuth";
+import DashboardSidebar from "@/components/dashboard/dashboard-sidebar";
 
 /**
  * This layout wraps all /dashboard routes. 
  */
 export default function DashboardLayout({ children }: { children: ReactNode }) {
-  // If we have a user, or if the user is guaranteed by the middleware, just render the content
-  return <div className="min-h-screen">{children}</div>;
+  const router = useRouter();
+  const { user, loading } = useAuth();
+
+  // Redirect to login if user is not authenticated
+  useEffect(() => {
+    if (!loading && !user) {
+      console.log('No user found in dashboard, redirecting to login');
+      const currentPath = window.location.pathname;
+      router.push(`/auth/login?redirect=${encodeURIComponent(currentPath)}`);
+    }
+  }, [user, loading, router]);
+
+  return (
+    <div className="flex min-h-screen">
+      <DashboardSidebar />
+      <div className="flex-1 overflow-auto">{children}</div>
+    </div>
+  );
 }
 
 /**

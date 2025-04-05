@@ -1,3 +1,11 @@
+/**
+ * NOTE: This component is DEPRECATED.
+ * The dashboard layout has been moved to app/dashboard/layout.tsx and works with the sidebar component.
+ * This file is kept for reference but should not be used in new code.
+ * 
+ * @deprecated Use the app/dashboard/layout.tsx for dashboard layouts instead.
+ */
+
 "use client"
 
 import { useEffect } from 'react';
