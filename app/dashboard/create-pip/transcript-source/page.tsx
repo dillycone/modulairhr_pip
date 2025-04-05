@@ -84,7 +84,7 @@ export default function TranscriptSourcePage() {
               onClick={handleUploadAudio} 
               className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
             >
-              Upload Audio File
+              Use Audio Recording
             </Button>
           </CardFooter>
         </Card>
