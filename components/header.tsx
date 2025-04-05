@@ -82,13 +82,13 @@ export default function Header() {
     <header
       className={`w-full sticky top-0 z-50 transition-all duration-200 ${isScrolled ? "bg-white/95 backdrop-blur-md shadow-sm" : "bg-transparent"}`}
     >
-      <div className="container flex h-16 items-center justify-between px-4 md:px-6">
+      <div className="flex h-16 items-center justify-between px-4 md:px-6">
         <div className="flex items-center gap-2">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-blue-500 flex items-center justify-center text-white font-bold">
               M
             </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-500">
+            <span className="text-lg font-bold bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-500">
               PIP Assistant | A ModulAIr HR Solution
             </span>
           </Link>
@@ -119,62 +119,8 @@ export default function Header() {
           </nav>
         )}
         <div className="hidden md:flex items-center gap-4">
-          {showAuthUI && user ? (
-            <>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src="/placeholder-user.jpg" alt={user.email || "User avatar"} />
-                      <AvatarFallback>{user.email?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
-                    </Avatar>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-56" align="end" forceMount>
-                  <DropdownMenuLabel className="font-normal">
-                    <div className="flex flex-col space-y-1">
-                      <p className="text-sm font-medium leading-none">{user.email}</p>
-                      <p className="text-xs leading-none text-muted-foreground">
-                        {user.email || "user@example.com"}
-                      </p>
-                    </div>
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <Link href="/dashboard" passHref legacyBehavior>
-                    <DropdownMenuItem>
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      <span>Dashboard</span>
-                    </DropdownMenuItem>
-                  </Link>
-                  <Link href="/profile" passHref legacyBehavior>
-                    <DropdownMenuItem>
-                      <User className="mr-2 h-4 w-4" />
-                      <span>Profile</span>
-                    </DropdownMenuItem>
-                  </Link>
-                  <Link href="/settings" passHref legacyBehavior>
-                    <DropdownMenuItem>
-                      <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
-                    </DropdownMenuItem>
-                  </Link>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <LogOut className="mr-2 h-4 w-4" />
-                    <span>Log out</span>
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-              <Link href="/dashboard" passHref>
-                <Button 
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Dashboard
-                </Button>
-              </Link>
-            </>
-          ) : (
+          {/* Show login/signup only when client-side, not loading, no user, AND not on an authenticated route */}
+          {isClient && !loading && !user && !isAuthenticatedRoute && (
             <>
               <Link href="/auth/login">
                 <Button variant="ghost" className="text-slate-700 hover:text-indigo-600 hover:bg-indigo-50">
@@ -186,6 +132,8 @@ export default function Header() {
               </Link>
             </>
           )}
+          {/* Placeholder for authenticated user UI if needed in the future */}
+          {/* {isClient && !loading && user && (<> Authenticated UI </>)} */}
         </div>
         <button
           className="flex items-center justify-center rounded-md p-2 md:hidden"
@@ -237,29 +185,8 @@ export default function Header() {
                 </Link>
               </>
             )}
-            {showAuthUI && user ? (
-              <>
-                <Link href="/dashboard" className="w-full">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Dashboard
-                  </Button>
-                </Link>
-                <Link href="/profile" className="w-full">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-slate-700 hover:text-indigo-600 hover:bg-indigo-50"
-                    onClick={() => setIsMenuOpen(false)}
-                  >
-                    Profile
-                  </Button>
-                </Link>
-              </>
-            ) : (
-              // Rest of mobile menu for logged out users
+            {/* Show login/signup only when client-side, not loading, no user, AND not on an authenticated route */}
+            {isClient && !loading && !user && !isAuthenticatedRoute && (
               <>
                 <Link href="/auth/login" className="w-full">
                   <Button
@@ -280,6 +207,7 @@ export default function Header() {
                 </Link>
               </>
             )}
+            {/* Placeholder for authenticated user mobile menu items if needed */}
           </nav>
         </div>
       )}

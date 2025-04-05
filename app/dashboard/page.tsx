@@ -54,12 +54,6 @@ export default function DashboardPage() {
     <div className="container mx-auto py-8 px-4 md:px-6">
       <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4">
         <h1 className="text-3xl font-bold tracking-tight text-slate-900">Dashboard</h1>
-        <Button 
-          onClick={handleCreateNewPip} 
-          className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full"
-        >
-          <PlusCircle className="mr-2 h-4 w-4" /> Create New PIP
-        </Button>
       </div>
 
       {loading ? (
