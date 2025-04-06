@@ -21,9 +21,15 @@ export async function POST(req: NextRequest) {
 
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
+    const prompt = formData.get('prompt') as string | null;
+    const speakersJson = formData.get('speakers') as string | null;
 
     if (!file) {
       return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+    }
+
+    if (!prompt) {
+      return NextResponse.json({ error: 'No prompt provided' }, { status: 400 });
     }
 
     // Convert file to Buffer and then to base64
@@ -39,7 +45,7 @@ export async function POST(req: NextRequest) {
 
     const parts = [
       audioPart,
-      { text: "Transcribe and diarize the attached file." },
+      { text: prompt },
     ];
 
     const result = await model.generateContent({
@@ -50,11 +56,25 @@ export async function POST(req: NextRequest) {
     });
 
     if (result.response) {
-        const transcript = result.response.text();
+        let transcript = result.response.text();
+        
+        // If we have speaker information, try to ensure the transcript uses the correct names
+        if (speakersJson && transcript) {
+          try {
+            const speakers = JSON.parse(speakersJson);
+            speakers.forEach((speaker: { name: string }, index: number) => {
+              const speakerPattern = new RegExp(`Speaker ${index + 1}:`, 'g');
+              transcript = transcript.replace(speakerPattern, `${speaker.name}:`);
+            });
+          } catch (e) {
+            console.error('Error processing speaker information:', e);
+          }
+        }
+        
         if (transcript) {
             return NextResponse.json({ transcript });
         } else {
-             console.error("Error extracting transcript from Gemini response:", result.response);
+            console.error("Error extracting transcript from Gemini response:", result.response);
             return NextResponse.json({ error: 'Failed to extract transcript from response' }, { status: 500 });
         }
     } else {
