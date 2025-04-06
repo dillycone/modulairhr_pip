@@ -44,7 +44,7 @@ export function SignUpForm({ onSignUpSuccess }: SignUpFormProps) {
   return (
     <AuthFormBase
       form={form}
-      error={authError?.message || ""}
+      error={authError}
       isLoading={form.formState.isSubmitting}
       schemaName="signupSchema"
       onSubmit={handleSubmit}

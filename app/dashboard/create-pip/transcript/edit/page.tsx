@@ -9,15 +9,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
 
-const PLACEHOLDER_TRANSCRIPT = 
-`[00:00:00] Speaker 1: Hello and welcome to our meeting.
-[00:00:05] Speaker 2: Thanks for having me. I'm excited to discuss the new project.
-[00:00:10] Speaker 1: Great! Let's start by outlining our objectives.
-[00:00:15] Speaker 2: Sounds good. I think we should focus on the key deliverables first.
-[00:00:22] Speaker 1: Agreed. The main deliverable is the new feature implementation.
-[00:00:30] Speaker 2: And what's the timeline for that?
-[00:00:35] Speaker 1: We're looking at a six-week development cycle.`;
-
 export default function EditTranscriptPage() {
   const router = useRouter();
   const [title, setTitle] = useState('Untitled Transcript');
@@ -65,10 +56,11 @@ export default function EditTranscriptPage() {
       <div className="flex items-center mb-8">
         <Button 
           variant="ghost" 
-          className="mr-4 p-0 h-auto" 
+          className="flex items-center space-x-2 px-0 hover:bg-transparent"
           onClick={handleBack}
         >
-          <ArrowLeft className="h-5 w-5 text-gray-500" />
+          <ArrowLeft className="h-5 w-5 text-slate-500" />
+          <span>Back</span>
         </Button>
         <div>
           <h1 className="text-3xl font-bold">Edit Transcript</h1>

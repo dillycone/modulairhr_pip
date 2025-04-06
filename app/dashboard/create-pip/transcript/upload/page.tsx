@@ -173,7 +173,7 @@ Example Output Format:
           className="mr-4 p-0 h-auto" 
           onClick={handleBack}
         >
-          <ArrowLeft className="h-5 w-5 text-gray-500" />
+          <ArrowLeft className="h-5 w-5 text-slate-500" />
         </Button>
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent">Upload Audio File</h1>
@@ -204,7 +204,7 @@ Example Output Format:
                 onClick={triggerFileInput}
               >
                 <div className={`mx-auto mb-4 h-16 w-16 rounded-full flex items-center justify-center ${file ? 'bg-indigo-100' : 'bg-gray-100'}`}>
-                  <Upload className={`h-8 w-8 ${file ? 'text-indigo-600' : 'text-gray-400'}`} />
+                  <Upload className={`h-8 w-8 ${file ? 'text-indigo-600' : 'text-slate-400'}`} />
                 </div>
                 <h3 className="text-lg font-medium mb-2">
                   {file ? (
@@ -213,7 +213,7 @@ Example Output Format:
                     'Drag and drop or click to upload'
                   )}
                 </h3>
-                <p className="text-sm text-gray-500 mb-4">
+                <p className="text-sm text-slate-500 mb-4">
                   Supports MP3, WAV, M4A, and other common audio formats (max 100MB)
                 </p>
                 <Button 
@@ -276,7 +276,7 @@ Example Output Format:
                   
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <Label htmlFor={`name-${index}`} className="text-sm mb-1.5 block text-gray-700">Name</Label>
+                      <Label htmlFor={`name-${index}`} className="text-sm mb-1.5 block text-slate-700">Name</Label>
                       <Input
                         id={`name-${index}`}
                         value={speaker.name}
@@ -287,7 +287,7 @@ Example Output Format:
                     </div>
                     
                     <div>
-                      <Label htmlFor={`role-${index}`} className="text-sm mb-1.5 block text-gray-700">Role/Description</Label>
+                      <Label htmlFor={`role-${index}`} className="text-sm mb-1.5 block text-slate-700">Role/Description</Label>
                       <Input
                         id={`role-${index}`}
                         value={speaker.role}

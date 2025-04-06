@@ -40,7 +40,7 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = "/dashboard" }: 
     <AuthFormBase
       form={form}
       isLoading={form.formState.isSubmitting}
-      error={authError?.message || ""}
+      error={authError}
       schemaName="loginSchema"
       onSubmit={handleSubmit}
       buttonText="Log in"

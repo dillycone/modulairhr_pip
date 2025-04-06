@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, FileText, Upload, Mic } from "lucide-react";
+import { ArrowLeft, FileText, Upload, Mic, ClipboardList } from "lucide-react";
 import { 
   Breadcrumb, 
   BreadcrumbItem, 
@@ -56,7 +56,7 @@ export default function TranscriptSourcePage() {
           className="mr-4 p-0 h-auto" 
           onClick={handleBack}
         >
-          <ArrowLeft className="h-5 w-5 text-gray-500" />
+          <ArrowLeft className="h-5 w-5 text-slate-500" />
         </Button>
         <div>
           <h1 className="text-3xl font-bold">Choose Transcript Source</h1>
@@ -76,7 +76,7 @@ export default function TranscriptSourcePage() {
               Choose from previously saved transcripts in your account.
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center text-gray-500 pb-0 flex-grow">
+          <CardContent className="text-center text-slate-500 pb-0 flex-grow">
             <p className="text-sm">Access transcripts from previous meetings or imported files.</p>
           </CardContent>
           <CardFooter className="mt-auto">
@@ -100,7 +100,7 @@ export default function TranscriptSourcePage() {
               Upload an audio recording to be transcribed automatically.
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center text-gray-500 pb-0 flex-grow">
+          <CardContent className="text-center text-slate-500 pb-0 flex-grow">
             <p className="text-sm">Supports MP3, WAV, M4A, and other common audio formats.</p>
           </CardContent>
           <CardFooter className="mt-auto">
@@ -124,7 +124,7 @@ export default function TranscriptSourcePage() {
               Start a new recording session directly in the app.
             </CardDescription>
           </CardHeader>
-          <CardContent className="text-center text-gray-500 pb-0 flex-grow">
+          <CardContent className="text-center text-slate-500 pb-0 flex-grow">
             <p className="text-sm">Record and transcribe meetings or conversations in real-time.</p>
           </CardContent>
           <CardFooter className="mt-auto">

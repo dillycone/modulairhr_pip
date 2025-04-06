@@ -2,8 +2,11 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useForm, Controller, SubmitHandler } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Calendar as CalendarIcon } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -25,55 +28,59 @@ import {
 } from "@/components/ui/select";
 import { Calendar } from "@/components/ui/calendar";
 import { format } from "date-fns";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 
-interface FormData {
-  employeeName: string;
-  employeePosition: string;
-  manager: string;
-  department: string;
-  startDate: Date | undefined;
-  reviewDate: Date | undefined;
-  performanceIssues: string;
-  improvementGoals: string;
-  resourcesSupport: string;
-  consequences: string;
-}
+// Define the Zod schema for validation
+const pipSchema = z.object({
+  employeeName: z.string().min(1, { message: "Employee name is required" }),
+  employeePosition: z.string().min(1, { message: "Employee position is required" }),
+  manager: z.string().min(1, { message: "Manager name is required" }),
+  department: z.string().min(1, { message: "Department is required" }),
+  startDate: z.date({ required_error: "Start date is required" }),
+  reviewDate: z.date({ required_error: "Review date is required" }),
+  performanceIssues: z.string().min(1, { message: "Performance issues description is required" }),
+  improvementGoals: z.string().min(1, { message: "Improvement goals description is required" }),
+  resourcesSupport: z.string().min(1, { message: "Resources/support description is required" }),
+  consequences: z.string().min(1, { message: "Consequences description is required" }),
+}).refine(data => !data.reviewDate || !data.startDate || data.reviewDate > data.startDate, {
+  message: "Review date must be after the start date",
+  path: ["reviewDate"], // Attach error to reviewDate field
+});
+
+type FormData = z.infer<typeof pipSchema>;
 
 export default function ManualPIPCreation() {
   const router = useRouter();
-  const [formData, setFormData] = useState<FormData>({
-    employeeName: '',
-    employeePosition: '',
-    manager: '',
-    department: '',
-    startDate: undefined,
-    reviewDate: undefined,
-    performanceIssues: '',
-    improvementGoals: '',
-    resourcesSupport: '',
-    consequences: '',
+
+  // Initialize react-hook-form
+  const form = useForm<FormData>({
+    resolver: zodResolver(pipSchema),
+    defaultValues: { // Provide sensible defaults matching the schema
+      employeeName: '',
+      employeePosition: '',
+      manager: '',
+      department: '',
+      startDate: undefined,
+      reviewDate: undefined,
+      performanceIssues: '',
+      improvementGoals: '',
+      resourcesSupport: '',
+      consequences: '',
+    },
   });
+  const { control, handleSubmit, register, formState: { errors } } = form;
 
   const handleBack = () => {
     router.back();
   };
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleDateChange = (name: 'startDate' | 'reviewDate', date: Date | undefined) => {
-    setFormData(prev => ({ ...prev, [name]: date }));
-  };
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log('PIP Data:', formData);
+  // Define the submit handler for react-hook-form
+  const onSubmit: SubmitHandler<FormData> = (data) => {
+    console.log('PIP Data:', data);
     // Here you would typically save the data and navigate to the next step
     alert('PIP created successfully! This is a placeholder - in a real app, this would save the data.');
   };
@@ -98,11 +105,12 @@ export default function ManualPIPCreation() {
       
       <div className="flex items-center mb-8">
         <Button 
-          variant="ghost" 
-          className="mr-4 p-0 h-auto" 
+          variant="ghost"
+          className="flex items-center space-x-2 px-0 hover:bg-transparent"
           onClick={handleBack}
         >
-          <ArrowLeft className="h-5 w-5 text-gray-500" />
+          <ArrowLeft className="h-5 w-5 text-slate-500" />
+          <span>Back</span>
         </Button>
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent">
@@ -112,7 +120,7 @@ export default function ManualPIPCreation() {
         </div>
       </div>
 
-      <form onSubmit={handleSubmit}>
+      <form onSubmit={handleSubmit(onSubmit)}>
         <div className="grid grid-cols-1 gap-8">
           {/* Employee Information Section */}
           <Card className="shadow-md border-t-4 border-t-indigo-500">
@@ -126,87 +134,121 @@ export default function ManualPIPCreation() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="employeeName">Employee Name</Label>
-                  <Input 
-                    id="employeeName" 
-                    name="employeeName" 
+                  <Input
+                    id="employeeName"
                     placeholder="Enter employee name"
-                    value={formData.employeeName}
-                    onChange={handleChange}
-                    required
+                    {...register("employeeName")}
                   />
+                  {errors.employeeName && <p className="text-sm font-medium text-destructive mt-1">{errors.employeeName.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="employeePosition">Position</Label>
-                  <Input 
-                    id="employeePosition" 
-                    name="employeePosition" 
+                  <Input
+                    id="employeePosition"
                     placeholder="Enter employee position"
-                    value={formData.employeePosition}
-                    onChange={handleChange}
-                    required
+                    {...register("employeePosition")}
                   />
+                  {errors.employeePosition && <p className="text-sm font-medium text-destructive mt-1">{errors.employeePosition.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="manager">Manager</Label>
-                  <Input 
-                    id="manager" 
-                    name="manager" 
+                  <Input
+                    id="manager"
                     placeholder="Enter manager name"
-                    value={formData.manager}
-                    onChange={handleChange}
-                    required
+                    {...register("manager")}
                   />
+                  {errors.manager && <p className="text-sm font-medium text-destructive mt-1">{errors.manager.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="department">Department</Label>
-                  <Select 
-                    onValueChange={(value) => handleSelectChange('department', value)}
-                  >
-                    <SelectTrigger id="department">
-                      <SelectValue placeholder="Select department" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="engineering">Engineering</SelectItem>
-                      <SelectItem value="marketing">Marketing</SelectItem>
-                      <SelectItem value="sales">Sales</SelectItem>
-                      <SelectItem value="customer-support">Customer Support</SelectItem>
-                      <SelectItem value="hr">Human Resources</SelectItem>
-                      <SelectItem value="finance">Finance</SelectItem>
-                      <SelectItem value="operations">Operations</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Controller
+                    name="department"
+                    control={control}
+                    render={({ field }) => (
+                      <Select
+                        onValueChange={field.onChange}
+                        value={field.value}
+                      >
+                        <SelectTrigger id="department">
+                          <SelectValue placeholder="Select department" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="engineering">Engineering</SelectItem>
+                          <SelectItem value="marketing">Marketing</SelectItem>
+                          <SelectItem value="sales">Sales</SelectItem>
+                          <SelectItem value="customer-support">Customer Support</SelectItem>
+                          <SelectItem value="hr">Human Resources</SelectItem>
+                          <SelectItem value="finance">Finance</SelectItem>
+                          <SelectItem value="operations">Operations</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    )}
+                  />
+                  {errors.department && <p className="text-sm font-medium text-destructive mt-1">{errors.department.message}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label>Start Date</Label>
-                  <div className="border rounded-md p-2">
-                    {formData.startDate ? (
-                      <div className="p-2">{format(formData.startDate, 'PP')}</div>
-                    ) : (
-                      <div className="text-muted-foreground p-2">Pick a date</div>
+                  <Label htmlFor="startDate">Start Date</Label>
+                  <Controller
+                    name="startDate"
+                    control={control}
+                    render={({ field }) => (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            id="startDate"
+                            variant={"outline"}
+                            className={`w-full justify-start text-left font-normal ${!field.value && "text-muted-foreground"}`}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value ? format(field.value, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                     )}
-                    <Calendar
-                      mode="single"
-                      selected={formData.startDate}
-                      onSelect={(date) => handleDateChange('startDate', date)}
-                      className="rounded-md border"
-                    />
-                  </div>
+                  />
+                  {errors.startDate && <p className="text-sm font-medium text-destructive mt-1">{errors.startDate.message}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label>Review Date</Label>
-                  <div className="border rounded-md p-2">
-                    {formData.reviewDate ? (
-                      <div className="p-2">{format(formData.reviewDate, 'PP')}</div>
-                    ) : (
-                      <div className="text-muted-foreground p-2">Pick a date</div>
+                  <Label htmlFor="reviewDate">Review Date</Label>
+                  <Controller
+                    name="reviewDate"
+                    control={control}
+                    render={({ field }) => (
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <Button
+                            id="reviewDate"
+                            variant={"outline"}
+                            className={`w-full justify-start text-left font-normal ${!field.value && "text-muted-foreground"}`}
+                          >
+                            <CalendarIcon className="mr-2 h-4 w-4" />
+                            {field.value ? format(field.value, "PPP") : "Pick a date"}
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0" align="start">
+                          <Calendar
+                            mode="single"
+                            selected={field.value}
+                            onSelect={field.onChange}
+                            disabled={(date) => {
+                              const startDate = form.getValues("startDate");
+                              return startDate ? date <= startDate : false;
+                            }}
+                            initialFocus
+                          />
+                        </PopoverContent>
+                      </Popover>
                     )}
-                    <Calendar
-                      mode="single"
-                      selected={formData.reviewDate}
-                      onSelect={(date) => handleDateChange('reviewDate', date)}
-                      className="rounded-md border"
-                    />
-                  </div>
+                  />
+                  {errors.reviewDate && <p className="text-sm font-medium text-destructive mt-1">{errors.reviewDate.message}</p>}
                 </div>
               </div>
             </CardContent>
@@ -227,13 +269,11 @@ export default function ManualPIPCreation() {
                 </Label>
                 <Textarea
                   id="performanceIssues"
-                  name="performanceIssues"
-                  placeholder="Detail the performance issues that need to be addressed..."
-                  className="min-h-[150px]"
-                  value={formData.performanceIssues}
-                  onChange={handleChange}
-                  required
+                  placeholder="Clearly outline the performance areas needing improvement..."
+                  {...register("performanceIssues")}
+                  className="min-h-[100px]"
                 />
+                {errors.performanceIssues && <p className="text-sm font-medium text-destructive mt-1">{errors.performanceIssues.message}</p>}
               </div>
             </CardContent>
           </Card>
@@ -249,17 +289,15 @@ export default function ManualPIPCreation() {
             <CardContent>
               <div className="space-y-4">
                 <Label htmlFor="improvementGoals">
-                  Outline specific, measurable goals for improvement
+                  Set clear, measurable, achievable, relevant, and time-bound (SMART) goals
                 </Label>
                 <Textarea
                   id="improvementGoals"
-                  name="improvementGoals"
-                  placeholder="List specific goals, targets, and timeline for improvement..."
-                  className="min-h-[150px]"
-                  value={formData.improvementGoals}
-                  onChange={handleChange}
-                  required
+                  placeholder="Define specific goals the employee needs to achieve..."
+                  {...register("improvementGoals")}
+                  className="min-h-[100px]"
                 />
+                {errors.improvementGoals && <p className="text-sm font-medium text-destructive mt-1">{errors.improvementGoals.message}</p>}
               </div>
             </CardContent>
           </Card>
@@ -275,17 +313,15 @@ export default function ManualPIPCreation() {
             <CardContent>
               <div className="space-y-4">
                 <Label htmlFor="resourcesSupport">
-                  Detail the resources, training, or support that will be provided
+                  Outline the resources, training, or support that will be provided
                 </Label>
                 <Textarea
                   id="resourcesSupport"
-                  name="resourcesSupport"
-                  placeholder="Describe the support, resources, or training that will be made available..."
-                  className="min-h-[150px]"
-                  value={formData.resourcesSupport}
-                  onChange={handleChange}
-                  required
+                  placeholder="List any training, coaching, tools, or other support..."
+                  {...register("resourcesSupport")}
+                  className="min-h-[100px]"
                 />
+                {errors.resourcesSupport && <p className="text-sm font-medium text-destructive mt-1">{errors.resourcesSupport.message}</p>}
               </div>
             </CardContent>
           </Card>
@@ -301,26 +337,24 @@ export default function ManualPIPCreation() {
             <CardContent>
               <div className="space-y-4">
                 <Label htmlFor="consequences">
-                  Outline potential consequences if improvement goals are not met
+                  Explain the consequences if performance does not improve
                 </Label>
                 <Textarea
                   id="consequences"
-                  name="consequences"
-                  placeholder="Describe potential actions if performance does not improve..."
-                  className="min-h-[150px]"
-                  value={formData.consequences}
-                  onChange={handleChange}
-                  required
+                  placeholder="Clearly state the potential outcomes if the goals are not met..."
+                  {...register("consequences")}
+                  className="min-h-[100px]"
                 />
+                {errors.consequences && <p className="text-sm font-medium text-destructive mt-1">{errors.consequences.message}</p>}
               </div>
             </CardContent>
           </Card>
 
           {/* Submit Button */}
-          <div className="flex justify-end mt-6">
+          <div className="flex justify-end">
             <Button 
               type="submit" 
-              className="bg-indigo-600 hover:bg-indigo-700 text-white px-6"
+              className="bg-indigo-600 hover:bg-indigo-700"
             >
               Create PIP
             </Button>

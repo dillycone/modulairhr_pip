@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/componen
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Sparkles } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+import { CardDescription } from "@/components/ui/card";
 
 export default function SummarizeTranscriptPage() {
   const router = useRouter();
@@ -59,7 +60,7 @@ Action items:
           className="mr-4 p-0 h-auto" 
           onClick={handleBack}
         >
-          <ArrowLeft className="h-5 w-5 text-gray-500" />
+          <ArrowLeft className="h-5 w-5 text-slate-500" />
         </Button>
         <div>
           <h1 className="text-3xl font-bold">Summarize Transcript</h1>
@@ -70,10 +71,13 @@ Action items:
       <Card className="mb-8">
         <CardHeader>
           <CardTitle className="text-xl">Transcript Summary</CardTitle>
+          <CardDescription>
+            Review the generated summary of your transcript.
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center justify-between mb-4">
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-slate-500">
               Generate an AI summary or write your own summary of the transcript.
             </p>
             <Button
@@ -102,10 +106,12 @@ Action items:
         </CardContent>
         <CardFooter className="flex justify-end space-x-4">
           <Button 
-            variant="outline" 
+            variant="ghost"
+            className="flex items-center space-x-2 px-0 hover:bg-transparent"
             onClick={handleBack}
           >
-            Back
+            <ArrowLeft className="h-5 w-5 text-slate-500" />
+            <span>Back</span>
           </Button>
           <Button
             onClick={handleSave}

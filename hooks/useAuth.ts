@@ -6,11 +6,85 @@ import { supabase } from '@/lib/supabase';
 import { translateError } from '@/lib/error-helpers';
 import type { User, Session, AuthChangeEvent } from '@supabase/supabase-js';
 
-interface AuthError {
+// Define error codes for specific authentication operations
+export enum AuthErrorCode {
+  // Session-related errors
+  SESSION_INIT_FAILED = 'session-init-failed',
+  SESSION_FETCH_FAILED = 'session-fetch-failed',
+  SESSION_EXPIRED = 'session-expired',
+  
+  // Sign-in related errors
+  SIGNIN_INVALID_CREDENTIALS = 'signin-invalid-credentials',
+  SIGNIN_USER_NOT_FOUND = 'signin-user-not-found',
+  SIGNIN_EMAIL_NOT_CONFIRMED = 'signin-email-not-confirmed',
+  SIGNIN_RATE_LIMITED = 'signin-rate-limited',
+  SIGNIN_GENERIC_ERROR = 'signin-generic-error',
+  
+  // Sign-up related errors
+  SIGNUP_EMAIL_IN_USE = 'signup-email-in-use',
+  SIGNUP_INVALID_EMAIL = 'signup-invalid-email',
+  SIGNUP_WEAK_PASSWORD = 'signup-weak-password',
+  SIGNUP_GENERIC_ERROR = 'signup-generic-error',
+  
+  // Sign-out related errors
+  SIGNOUT_FAILED = 'signout-failed',
+  
+  // Password reset related errors
+  PASSWORD_RESET_FAILED = 'password-reset-failed',
+  PASSWORD_UPDATE_FAILED = 'password-update-failed',
+  
+  // Generic errors
+  NETWORK_ERROR = 'network-error',
+  UNKNOWN_ERROR = 'unknown-error',
+  AUTH_STATE_CHANGE_ERROR = 'auth-state-change-error'
+}
+
+// Base interface for all auth errors
+interface AuthErrorBase {
   message: string;
-  code: string;
+  code: AuthErrorCode;
   original?: unknown;
 }
+
+// Specific error types
+interface SessionError extends AuthErrorBase {
+  code: AuthErrorCode.SESSION_INIT_FAILED | 
+        AuthErrorCode.SESSION_FETCH_FAILED | 
+        AuthErrorCode.SESSION_EXPIRED;
+}
+
+interface SignInError extends AuthErrorBase {
+  code: AuthErrorCode.SIGNIN_INVALID_CREDENTIALS | 
+        AuthErrorCode.SIGNIN_USER_NOT_FOUND | 
+        AuthErrorCode.SIGNIN_EMAIL_NOT_CONFIRMED |
+        AuthErrorCode.SIGNIN_RATE_LIMITED |
+        AuthErrorCode.SIGNIN_GENERIC_ERROR;
+  email?: string;
+}
+
+interface SignUpError extends AuthErrorBase {
+  code: AuthErrorCode.SIGNUP_EMAIL_IN_USE | 
+        AuthErrorCode.SIGNUP_INVALID_EMAIL | 
+        AuthErrorCode.SIGNUP_WEAK_PASSWORD |
+        AuthErrorCode.SIGNUP_GENERIC_ERROR;
+  email?: string;
+}
+
+interface PasswordError extends AuthErrorBase {
+  code: AuthErrorCode.PASSWORD_RESET_FAILED | 
+        AuthErrorCode.PASSWORD_UPDATE_FAILED;
+  email?: string;
+}
+
+interface GenericError extends AuthErrorBase {
+  code: AuthErrorCode.NETWORK_ERROR | 
+        AuthErrorCode.UNKNOWN_ERROR |
+        AuthErrorCode.AUTH_STATE_CHANGE_ERROR |
+        AuthErrorCode.SIGNOUT_FAILED;
+}
+
+// Union type for all auth errors
+export type AuthError = SessionError | SignInError | SignUpError | PasswordError | GenericError;
 
 interface AuthState {
   user: User | null;
@@ -23,6 +97,125 @@ interface AuthResponse {
   data: any;
   error: AuthError | null;
 }
+
+// Helper function to map Supabase errors to our custom error types
+const mapSupabaseError = (error: any, context: string): AuthError => {
+  if (!error) {
+    return {
+      message: 'An unknown error occurred',
+      code: AuthErrorCode.UNKNOWN_ERROR
+    };
+  }
+
+  // Extract error message from Supabase error
+  const errorMessage = translateError(error);
+  const errorCode = error.code || '';
+  
+  // Map context and error to specific error types
+  switch (context) {
+    case 'signin':
+      if (errorMessage.includes('Invalid login credentials')) {
+        return {
+          message: 'The email or password you entered is incorrect',
+          code: AuthErrorCode.SIGNIN_INVALID_CREDENTIALS,
+          original: error,
+          email: error.email
+        };
+      } else if (errorMessage.includes('Email not confirmed')) {
+        return {
+          message: 'Please confirm your email address before signing in',
+          code: AuthErrorCode.SIGNIN_EMAIL_NOT_CONFIRMED,
+          original: error,
+          email: error.email
+        };
+      } else if (errorMessage.includes('rate limit')) {
+        return {
+          message: 'Too many sign-in attempts. Please try again later',
+          code: AuthErrorCode.SIGNIN_RATE_LIMITED,
+          original: error
+        };
+      } else {
+        return {
+          message: errorMessage || 'Failed to sign in',
+          code: AuthErrorCode.SIGNIN_GENERIC_ERROR,
+          original: error
+        };
+      }
+      
+    case 'signup':
+      if (errorMessage.includes('already in use') || errorMessage.includes('already registered')) {
+        return {
+          message: 'This email is already registered',
+          code: AuthErrorCode.SIGNUP_EMAIL_IN_USE,
+          original: error,
+          email: error.email
+        };
+      } else if (errorMessage.includes('valid email')) {
+        return {
+          message: 'Please enter a valid email address',
+          code: AuthErrorCode.SIGNUP_INVALID_EMAIL,
+          original: error,
+          email: error.email
+        };
+      } else if (errorMessage.includes('password') && errorMessage.includes('strong')) {
+        return {
+          message: 'Please use a stronger password',
+          code: AuthErrorCode.SIGNUP_WEAK_PASSWORD,
+          original: error
+        };
+      } else {
+        return {
+          message: errorMessage || 'Failed to create account',
+          code: AuthErrorCode.SIGNUP_GENERIC_ERROR,
+          original: error
+        };
+      }
+      
+    case 'reset-password':
+      return {
+        message: errorMessage || 'Failed to send password reset email',
+        code: AuthErrorCode.PASSWORD_RESET_FAILED,
+        original: error,
+        email: error.email
+      };
+      
+    case 'update-password':
+      return {
+        message: errorMessage || 'Failed to update password',
+        code: AuthErrorCode.PASSWORD_UPDATE_FAILED,
+        original: error
+      };
+      
+    case 'session':
+      return {
+        message: errorMessage || 'Session error',
+        code: AuthErrorCode.SESSION_INIT_FAILED,
+        original: error
+      };
+      
+    case 'signout':
+      return {
+        message: errorMessage || 'Failed to sign out',
+        code: AuthErrorCode.SIGNOUT_FAILED,
+        original: error
+      };
+      
+    default:
+      if (errorMessage.includes('network') || errorCode.includes('network')) {
+        return {
+          message: 'Network error. Please check your internet connection',
+          code: AuthErrorCode.NETWORK_ERROR,
+          original: error
+        };
+      } else {
+        return {
+          message: errorMessage || 'An unknown error occurred',
+          code: AuthErrorCode.UNKNOWN_ERROR,
+          original: error
+        };
+      }
+  }
+};
 
 export const useAuth = () => {
   const [state, setState] = useState<AuthState>({
@@ -58,11 +251,10 @@ export const useAuth = () => {
         if (sessionError) {
           debugLog('Error getting session:', sessionError);
           if (mounted) {
-            updateAuthState({ loading: false, error: { 
-              message: translateError(sessionError), 
-              code: 'init-fail', 
-              original: sessionError 
-            }});
+            updateAuthState({ 
+              loading: false, 
+              error: mapSupabaseError(sessionError, 'session')
+            });
           }
           return;
         }
@@ -133,22 +325,23 @@ export const useAuth = () => {
                   }
               }
             } catch (error: unknown) {
-              const msg = translateError(error);
-              debugLog('Error in auth state change handler:', msg);
+              debugLog('Error in auth state change handler:', error);
               if (mounted) {
                 updateAuthState({ 
-                  error: { message: msg, code: 'auth-change', original: error }
+                  error: mapSupabaseError(error, 'auth-state-change') 
                 });
               }
             }
           }
         );
       } catch (error: unknown) {
-        const msg = translateError(error);
         if (mounted) {
-          updateAuthState({ loading: false, error: { message: msg, code: 'init-fail', original: error }});
+          updateAuthState({ 
+            loading: false, 
+            error: mapSupabaseError(error, 'session')
+          });
         }
-        debugLog('Error initializing auth:', msg);
+        debugLog('Error initializing auth:', error);
       }
     };
 
@@ -177,7 +370,7 @@ export const useAuth = () => {
         password: opts.password
       });
       if (error) {
-        const processed = { message: translateError(error), code: 'signin-fail', original: error };
+        const processed = mapSupabaseError(error, 'signin');
         debugLog('Signin error:', error);
         updateAuthState({ loading: false, error: processed });
         return { data: null, error: processed };
@@ -193,7 +386,7 @@ export const useAuth = () => {
       });
       return { data, error: null };
     } catch (error: any) {
-      const processed = { message: translateError(error), code: 'signin-fail' };
+      const processed = mapSupabaseError(error, 'signin');
       updateAuthState({ loading: false, error: processed });
       return { data: null, error: processed };
     }
@@ -215,7 +408,7 @@ export const useAuth = () => {
       });
 
       if (error) {
-        const processed = { message: translateError(error), code: 'signup-fail', original: error };
+        const processed = mapSupabaseError(error, 'signup');
         debugLog('Signup error:', error);
         updateAuthState({ loading: false, error: processed });
         return { data: null, error: processed };
@@ -230,7 +423,7 @@ export const useAuth = () => {
       });
       return { data, error: null };
     } catch (error: any) {
-      const processed = { message: translateError(error), code: 'signup-fail' };
+      const processed = mapSupabaseError(error, 'signup');
       updateAuthState({ loading: false, error: processed });
       return { data: null, error: processed };
     }
@@ -243,7 +436,7 @@ export const useAuth = () => {
 
       const { error } = await supabase.auth.signOut();
       if (error) {
-        const processedError = { message: translateError(error), code: 'signout-fail' };
+        const processedError = mapSupabaseError(error, 'signout');
         updateAuthState({ loading: false, error: processedError });
         return { error: processedError };
       }
@@ -256,7 +449,7 @@ export const useAuth = () => {
       });
       return { error: null };
     } catch (error: any) {
-      const processedError = { message: translateError(error), code: 'signout-fail' };
+      const processedError = mapSupabaseError(error, 'signout');
       updateAuthState({ loading: false, error: processedError });
       return { error: processedError };
     }
@@ -276,7 +469,7 @@ export const useAuth = () => {
       });
 
       if (error) {
-        const processedError = { message: translateError(error), code: 'reset-fail', original: error };
+        const processedError = mapSupabaseError(error, 'reset-password');
         updateAuthState({ loading: false, error: processedError });
         return { data: null, error: processedError };
       }
@@ -284,7 +477,7 @@ export const useAuth = () => {
       updateAuthState({ loading: false, error: null });
       return { data, error: null };
     } catch (error: any) {
-      const processedError = { message: translateError(error), code: 'reset-fail', original: error };
+      const processedError = mapSupabaseError(error, 'reset-password');
       debugLog('Error resetting password:', processedError);
       updateAuthState({ loading: false, error: processedError });
       return { data: null, error: processedError };
@@ -301,7 +494,7 @@ export const useAuth = () => {
 
       const { data, error } = await supabase.auth.updateUser({ password: newPassword });
       if (error) {
-        const processedError = { message: translateError(error), code: 'update-password-fail', original: error };
+        const processedError = mapSupabaseError(error, 'update-password');
         updateAuthState({ loading: false, error: processedError });
         return { data: null, error: processedError };
       }
@@ -317,7 +510,7 @@ export const useAuth = () => {
 
       return { data, error: null };
     } catch (error: any) {
-      const processedError = { message: translateError(error), code: 'update-password-fail' };
+      const processedError = mapSupabaseError(error, 'update-password');
       debugLog('Error updating password:', processedError);
       updateAuthState({ loading: false, error: processedError });
       return { data: null, error: processedError };

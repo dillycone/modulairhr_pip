@@ -5,6 +5,7 @@ import { UseFormReturn } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AuthError } from "@/components/ui/auth-error";
+import { AuthError as AuthErrorType } from "@/hooks/useAuth";
 
 /**
  * This component factors out common auth form styling
@@ -14,7 +15,7 @@ import { AuthError } from "@/components/ui/auth-error";
 interface AuthFormBaseProps {
   form: UseFormReturn<any>;
   onSubmit: (values: any) => void | Promise<void>;
-  error?: string;
+  error?: AuthErrorType | null | string;
   isLoading?: boolean;
   buttonText: string;
   schemaName?: string;
@@ -37,9 +38,11 @@ export function AuthFormBase({
     formState: { errors },
   } = form;
 
+  // Determine if we have a configuration error
+  const errorMessage = typeof error === 'string' ? error : error?.message || '';
   const hasConfigError =
-    error?.toLowerCase()?.includes("configuration") ||
-    error?.toLowerCase()?.includes("not properly configured");
+    errorMessage.toLowerCase()?.includes("configuration") ||
+    errorMessage.toLowerCase()?.includes("not properly configured");
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -152,7 +155,9 @@ export function AuthFormBase({
           )}
 
           {error && !hasConfigError && (
-            <AuthError severity="error" message={error} />
+            typeof error === 'string' 
+              ? <AuthError message={error} /> 
+              : <AuthError error={error} />
           )}
 
           <Button type="submit" className="w-full" disabled={isLoading}>
