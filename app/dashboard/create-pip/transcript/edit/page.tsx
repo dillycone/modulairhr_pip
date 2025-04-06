@@ -53,14 +53,33 @@ export default function EditTranscriptPage() {
 
   return (
     <div className="max-w-4xl mx-auto p-8">
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/dashboard/create-pip">Create PIP</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/dashboard/create-pip/transcript-source">Transcript Source</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Edit Transcript</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      
       <div className="flex items-center mb-8">
         <Button 
           variant="ghost" 
-          className="flex items-center space-x-2 px-0 hover:bg-transparent"
+          className="mr-4 p-0 h-auto"
           onClick={handleBack}
         >
           <ArrowLeft className="h-5 w-5 text-slate-500" />
-          <span>Back</span>
         </Button>
         <div>
           <h1 className="text-3xl font-bold">Edit Transcript</h1>

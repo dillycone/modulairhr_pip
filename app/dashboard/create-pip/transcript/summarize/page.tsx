@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -54,6 +54,26 @@ Action items:
 
   return (
     <div className="max-w-4xl mx-auto p-8">
+      <Breadcrumb className="mb-4">
+        <BreadcrumbList>
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/dashboard/create-pip">Create PIP</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbLink href="/dashboard/create-pip/transcript-source">Transcript Source</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Summarize Transcript</BreadcrumbPage>
+          </BreadcrumbItem>
+        </BreadcrumbList>
+      </Breadcrumb>
+      
       <div className="flex items-center mb-8">
         <Button 
           variant="ghost" 
@@ -106,12 +126,10 @@ Action items:
         </CardContent>
         <CardFooter className="flex justify-end space-x-4">
           <Button 
-            variant="ghost"
-            className="flex items-center space-x-2 px-0 hover:bg-transparent"
+            variant="outline"
             onClick={handleBack}
           >
-            <ArrowLeft className="h-5 w-5 text-slate-500" />
-            <span>Back</span>
+            Cancel
           </Button>
           <Button
             onClick={handleSave}

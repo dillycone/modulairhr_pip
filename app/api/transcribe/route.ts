@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { env } from '@/lib/env';
+import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
+import { cookies } from 'next/headers';
+import type { Database } from '@/types/supabase';
 
 // Log environment status
 console.log('Environment check for transcribe API:');
@@ -16,6 +19,21 @@ const API_KEY = env.GEMINI_API_KEY;
 
 export async function POST(req: NextRequest) {
   try {
+    // Initialize Supabase client
+    const cookieStore = cookies();
+    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore });
+
+    // Check if user is authenticated
+    const { data: { session }, error: authError } = await supabase.auth.getSession();
+
+    if (authError || !session) {
+      console.error('Authentication error:', authError);
+      return NextResponse.json(
+        { error: 'Unauthorized - Please login to access this endpoint' },
+        { status: 401 }
+      );
+    }
+
     const genAI = new GoogleGenerativeAI(API_KEY);
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
@@ -56,30 +74,30 @@ export async function POST(req: NextRequest) {
     });
 
     if (result.response) {
-        let transcript = result.response.text();
-        
-        // If we have speaker information, try to ensure the transcript uses the correct names
-        if (speakersJson && transcript) {
-          try {
-            const speakers = JSON.parse(speakersJson);
-            speakers.forEach((speaker: { name: string }, index: number) => {
-              const speakerPattern = new RegExp(`Speaker ${index + 1}:`, 'g');
-              transcript = transcript.replace(speakerPattern, `${speaker.name}:`);
-            });
-          } catch (e) {
-            console.error('Error processing speaker information:', e);
-          }
+      let transcript = result.response.text();
+      
+      // If we have speaker information, try to ensure the transcript uses the correct names
+      if (speakersJson && transcript) {
+        try {
+          const speakers = JSON.parse(speakersJson);
+          speakers.forEach((speaker: { name: string }, index: number) => {
+            const speakerPattern = new RegExp(`Speaker ${index + 1}:`, 'g');
+            transcript = transcript.replace(speakerPattern, `${speaker.name}:`);
+          });
+        } catch (e) {
+          console.error('Error processing speaker information:', e);
         }
-        
-        if (transcript) {
-            return NextResponse.json({ transcript });
-        } else {
-            console.error("Error extracting transcript from Gemini response:", result.response);
-            return NextResponse.json({ error: 'Failed to extract transcript from response' }, { status: 500 });
-        }
+      }
+      
+      if (transcript) {
+        return NextResponse.json({ transcript });
+      } else {
+        console.error("Error extracting transcript from Gemini response:", result.response);
+        return NextResponse.json({ error: 'Failed to extract transcript from response' }, { status: 500 });
+      }
     } else {
-        console.error("Error generating transcript:", result);
-        return NextResponse.json({ error: 'Failed to generate transcript' }, { status: 500 });
+      console.error("Error generating transcript:", result);
+      return NextResponse.json({ error: 'Failed to generate transcript' }, { status: 500 });
     }
 
   } catch (error) {

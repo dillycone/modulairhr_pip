@@ -1,12 +1,16 @@
 'use client';
 
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+'use client';
+
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar as CalendarIcon } from "lucide-react";
+import { ArrowLeft, Calendar as CalendarIcon, Save } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -15,7 +19,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -53,13 +57,19 @@ const pipSchema = z.object({
 
 type FormData = z.infer<typeof pipSchema>;
 
-export default function ManualPIPCreation() {
+export default function PIPDetailsFromTranscript() {
   const router = useRouter();
+  const [isSaving, setIsSaving] = useState(false);
+
+  useEffect(() => {
+    // Here you would typically load transcript summary data
+    // and pre-populate relevant fields
+  }, []);
 
   // Initialize react-hook-form
   const form = useForm<FormData>({
     resolver: zodResolver(pipSchema),
-    defaultValues: { // Provide sensible defaults matching the schema
+    defaultValues: {
       employeeName: '',
       employeePosition: '',
       manager: '',
@@ -79,10 +89,14 @@ export default function ManualPIPCreation() {
   };
 
   // Define the submit handler for react-hook-form
-  const onSubmit: SubmitHandler<FormData> = (data) => {
+  const onSubmit: SubmitHandler<FormData> = async (data) => {
+    setIsSaving(true);
     console.log('PIP Data:', data);
-    // Here you would typically save the data and navigate to the next step
+    // Here you would typically save the data
+    await new Promise(resolve => setTimeout(resolve, 1500));
     alert('PIP created successfully! This is a placeholder - in a real app, this would save the data.');
+    router.push('/dashboard');
+    setIsSaving(false);
   };
 
   return (
@@ -98,13 +112,17 @@ export default function ManualPIPCreation() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Manual Creation</BreadcrumbPage>
+            <BreadcrumbLink href="/dashboard/create-pip/transcript-source">Transcript Source</BreadcrumbLink>
+          </BreadcrumbItem>
+          <BreadcrumbSeparator />
+          <BreadcrumbItem>
+            <BreadcrumbPage>Complete PIP Details</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
       
       <div className="flex items-center mb-8">
-        <Button 
+        <Button
           variant="ghost"
           className="mr-4 p-0 h-auto"
           onClick={handleBack}
@@ -113,9 +131,9 @@ export default function ManualPIPCreation() {
         </Button>
         <div>
           <h1 className="text-3xl font-bold bg-gradient-to-r from-indigo-600 to-violet-500 bg-clip-text text-transparent">
-            Create Performance Improvement Plan
+            Complete Performance Improvement Plan
           </h1>
-          <p className="text-muted-foreground mt-2">Fill out the form below to create a PIP manually</p>
+          <p className="text-muted-foreground mt-2">Review and complete the PIP details based on the transcript</p>
         </div>
       </div>
 
@@ -350,16 +368,24 @@ export default function ManualPIPCreation() {
           </Card>
 
           {/* Submit Button */}
-          <div className="flex justify-end">
-            <Button 
-              type="submit" 
-              className="bg-indigo-600 hover:bg-indigo-700"
+          <div className="flex justify-end space-x-4">
+            <Button
+              variant="outline"
+              onClick={handleBack}
             >
-              Create PIP
+              Back
+            </Button>
+            <Button
+              type="submit"
+              className="bg-indigo-600 hover:bg-indigo-700"
+              disabled={isSaving}
+            >
+              {isSaving ? 'Creating PIP...' : 'Create PIP'}
+              {!isSaving && <Save className="ml-2 h-4 w-4" />}
             </Button>
           </div>
         </div>
       </form>
     </div>
   );
-} 
+}
