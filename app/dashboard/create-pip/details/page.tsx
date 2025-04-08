@@ -104,15 +104,15 @@ export default function PIPDetailsFromTranscript() {
       <Breadcrumb className="mb-4">
         <BreadcrumbList>
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
+            <BreadcrumbLink onClick={(e) => { e.preventDefault(); router.push('/dashboard'); }}>Dashboard</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard/create-pip">Create PIP</BreadcrumbLink>
+            <BreadcrumbLink onClick={(e) => { e.preventDefault(); router.push('/dashboard/create-pip'); }}>Create PIP</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard/create-pip/transcript-source">Transcript Source</BreadcrumbLink>
+            <BreadcrumbLink onClick={(e) => { e.preventDefault(); router.push('/dashboard/create-pip/transcript-source'); }}>Transcript Source</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

@@ -64,15 +64,8 @@ export default function Header() {
 
   const navigateToDashboard = (e: React.MouseEvent) => {
     e.preventDefault()
-    console.log("Direct navigation to dashboard triggered", { 
-      hasUser: !!user,
-      isLoading: loading,
-      isClient,
-      pathname 
-    })
-    
-    // Use window.location for reliable navigation
-    window.location.href = '/dashboard'
+    console.log("Navigation to dashboard triggered")
+    router.push('/dashboard')
   }
 
   // Only render auth-dependent elements when client-side and not loading
