@@ -9,6 +9,9 @@ import PricingSection from './sections/PricingSection'
 import FaqSection from './sections/FaqSection'
 import CtaSection from './sections/CtaSection'
 
+// Feature flags
+const SHOW_TESTIMONIALS = false;
+
 export default function LandingPage() {
   return (
     <div className="flex min-h-screen flex-col">
@@ -18,7 +21,7 @@ export default function LandingPage() {
       <ExpertiseSection />
       <IntegrationsSection />
       <HowItWorksSection />
-      <TestimonialsSection />
+      {SHOW_TESTIMONIALS && <TestimonialsSection />}
       <PricingSection />
       <FaqSection />
       <CtaSection />

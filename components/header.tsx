@@ -23,6 +23,9 @@ const AUTHENTICATED_ROUTES = [
   '/settings'
 ];
 
+// Feature flags
+const SHOW_TESTIMONIALS = false;
+
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
@@ -100,12 +103,14 @@ export default function Header() {
             <Link href="#pricing" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">
               Pricing
             </Link>
-            <Link
-              href="#testimonials"
-              className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors"
-            >
-              Testimonials
-            </Link>
+            {SHOW_TESTIMONIALS && (
+              <Link
+                href="#testimonials"
+                className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors"
+              >
+                Testimonials
+              </Link>
+            )}
             <Link href="#faq" className="text-sm font-medium text-slate-700 hover:text-indigo-600 transition-colors">
               FAQ
             </Link>
@@ -194,13 +199,15 @@ export default function Header() {
                 >
                   Pricing
                 </Link>
-                <Link
-                  href="#testimonials"
-                  className="text-sm font-medium text-slate-700 hover:text-indigo-600"
-                  onClick={() => setIsMenuOpen(false)}
-                >
-                  Testimonials
-                </Link>
+                {SHOW_TESTIMONIALS && (
+                  <Link
+                    href="#testimonials"
+                    className="text-sm font-medium text-slate-700 hover:text-indigo-600"
+                    onClick={() => setIsMenuOpen(false)}
+                  >
+                    Testimonials
+                  </Link>
+                )}
                 <Link
                   href="#faq"
                   className="text-sm font-medium text-slate-700 hover:text-indigo-600"
