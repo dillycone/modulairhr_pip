@@ -2,6 +2,7 @@ import { Button } from "@/components/ui/button"
 import { ArrowRight, CheckCircle } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import Image from "next/image"
+import { WaitlistForm } from "@/components/WaitlistForm"
 
 export default function HeroSection() {
   return (
@@ -9,11 +10,11 @@ export default function HeroSection() {
       <div className="absolute inset-0 bg-grid-pattern opacity-[0.2] pointer-events-none"></div>
       <div className="container px-4 md:px-6 relative">
         <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 items-center">
-          <div className="flex flex-col justify-center space-y-4">
+          <div className="flex flex-col justify-center space-y-6">
             <Badge className="w-fit bg-indigo-100 text-indigo-700 hover:bg-indigo-200 transition-colors">
               Streamline HR Processes
             </Badge>
-            <div className="space-y-2">
+            <div className="space-y-4">
               <h1 className="text-4xl font-bold tracking-tighter sm:text-5xl md:text-6xl lg:text-7xl bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-blue-500">
                 Accelerate Performance Improvement Plans
               </h1>
@@ -23,26 +24,13 @@ export default function HeroSection() {
                 them.
               </p>
             </div>
-            <div className="flex flex-col gap-2 min-[400px]:flex-row">
-              <Button size="lg" className="bg-indigo-600 hover:bg-indigo-700 text-white rounded-full px-8">
-                Request a Demo
-              </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                className="border-indigo-600 text-indigo-600 hover:bg-indigo-50 rounded-full px-8"
-              >
-                Watch Video <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+            <div className="py-2">
+              <WaitlistForm />
             </div>
-            <div className="flex items-center space-x-4 text-sm text-slate-600">
+            <div className="flex items-center">
               <div className="flex items-center space-x-1">
-                <CheckCircle className="h-4 w-4 text-indigo-600" />
-                <span>14-day free trial</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <CheckCircle className="h-4 w-4 text-indigo-600" />
-                <span>No credit card required</span>
+                <CheckCircle className="h-5 w-5 text-indigo-600" />
+                <span className="text-sm text-slate-600">Early access</span>
               </div>
             </div>
           </div>
