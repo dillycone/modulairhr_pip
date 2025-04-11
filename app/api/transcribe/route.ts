@@ -12,7 +12,6 @@ import { z } from 'zod';
 console.log('Environment check for transcribe API:');
 console.log('- Using env module:', !!env);
 console.log('- GEMINI_API_KEY loaded:', !!env.GEMINI_API_KEY);
-console.log('- Environment complete:', env.isComplete());
 
 // Use the specific model from reference code
 const MODEL_NAME = "gemini-2.5-pro-preview-03-25";
