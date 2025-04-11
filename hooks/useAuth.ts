@@ -398,12 +398,16 @@ export const useAuth = () => {
       debugLog('Sign up started for:', email);
       updateAuthState({ loading: true, error: null });
 
-      // Attempt sign up
+      // Attempt sign up with custom welcome template
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
         options: {
           emailRedirectTo: window.location.origin + '/auth/callback',
+          data: {
+            welcomeEmail: true,
+            signupDate: new Date().toISOString(),
+          }
         },
       });
 

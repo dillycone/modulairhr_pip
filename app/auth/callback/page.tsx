@@ -3,6 +3,7 @@
 import { useEffect, useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
+import { safeRedirect } from '@/lib/auth-navigation';
 
 function AuthCallbackContent() {
   const router = useRouter();
@@ -16,7 +17,8 @@ function AuthCallbackContent() {
         setStatus('Processing authentication response...');
 
         const code = searchParams.get('code');
-        const redirectTo = searchParams.get('redirect') || '/dashboard';
+        const redirectUrl = searchParams.get('redirect');
+        const safeRedirectTo = safeRedirect(redirectUrl);
         
         if (code) {
           // Exchange the code for a session (stores in cookie)
@@ -25,9 +27,7 @@ function AuthCallbackContent() {
           if (exchangeError) {
             setStatus('Authentication error, redirecting to login...');
             console.error('Exchange error:', exchangeError);
-            setTimeout(() => {
-              router.push('/auth/login');
-            }, 2000);
+            router.push('/auth/login');
             return;
           }
           
@@ -37,28 +37,24 @@ function AuthCallbackContent() {
           if (sessionError || !data.session) {
             setStatus('Session error, redirecting to login...');
             console.error('Session error:', sessionError);
-            setTimeout(() => {
-              router.push('/auth/login');
-            }, 2000);
+            router.push('/auth/login');
             return;
           }
           
           // Success - redirect to dashboard or the specified redirect path
-          setStatus(`Authentication successful, redirecting to ${redirectTo}...`);
-          router.push(redirectTo);
+          setStatus(`Authentication successful, redirecting to ${safeRedirectTo}...`);
+          router.push(safeRedirectTo);
           return;
         } else {
           setStatus('No authentication code found, redirecting to login...');
-          setTimeout(() => {
-            router.push('/auth/login');
-          }, 2000);
+          router.push('/auth/login');
         }
       } catch (err: any) {
         console.error('Auth callback error:', err);
         setError(`Authentication failed: ${err.message || 'Unknown error'}`);
         setTimeout(() => {
           router.push('/auth/login');
-        }, 3000);
+        }, 1500);
       }
     }
 

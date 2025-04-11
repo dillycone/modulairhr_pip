@@ -57,12 +57,15 @@ export default function DashboardSidebar() {
   const { user } = useAuth();
   
   // Simple function to check if a path is active
-  const isActive = (path: string) => pathname === path;
+  const isActive = (path: string) => pathname.startsWith(path);
 
   // Get user information from metadata safely
   const userEmail = user?.email || "";
   const userName = user?.user_metadata?.name || userEmail || "User";
   const userInitial = userEmail ? userEmail.charAt(0).toUpperCase() : "U";
+
+  // Determine if the user is an admin (check potential locations for role)
+  const isAdmin = user?.app_metadata?.role === 'admin' || user?.role === 'admin';
 
   return (
     <div className="w-64 h-screen bg-white border-r border-slate-200 flex flex-col">
@@ -73,7 +76,7 @@ export default function DashboardSidebar() {
         </Avatar>
         <div className="flex flex-col">
           <span className="font-medium text-sm">{userName}</span>
-          <span className="text-xs text-slate-500">HR Manager</span>
+          <span className="text-xs text-slate-500">{user?.app_metadata?.role || user?.role || 'User'}</span>
         </div>
       </div>
       
@@ -82,7 +85,7 @@ export default function DashboardSidebar() {
       {/* Quick Actions */}
       <div className="p-4">
         <Button 
-          onClick={() => router.push('/create-pip')} 
+          onClick={() => router.push('/create-pip/select-template')} 
           className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
         >
           <PlusCircle className="h-4 w-4 mr-2" /> Create New PIP
@@ -103,14 +106,12 @@ export default function DashboardSidebar() {
           icon={<FileText className="h-4 w-4" />} 
           label="PIPs Management" 
           active={isActive('/dashboard/pips')}
-          badge={3}
         />
         <SidebarLink 
           href="/dashboard/accountability" 
           icon={<Users className="h-4 w-4" />} 
           label="Accountability" 
           active={isActive('/dashboard/accountability')}
-          badge={2}
         />
         <SidebarLink 
           href="/dashboard/reports" 
@@ -121,11 +122,16 @@ export default function DashboardSidebar() {
         
         <div className="mt-6 mb-2 px-2 text-xs font-semibold text-slate-500 uppercase">Tools</div>
         <SidebarLink 
+          href="/create-pip/transcript-source" 
+          icon={<FileText className="h-4 w-4" />} 
+          label="Transcript Tools" 
+          active={isActive('/create-pip/transcript')}
+        />
+        <SidebarLink 
           href="/dashboard/notifications" 
           icon={<Bell className="h-4 w-4" />} 
           label="Notifications" 
           active={isActive('/dashboard/notifications')}
-          badge={5}
         />
         <SidebarLink 
           href="/dashboard/filters" 
@@ -145,8 +151,9 @@ export default function DashboardSidebar() {
           href="/dashboard/settings" 
           icon={<Settings className="h-4 w-4" />} 
           label="Settings" 
-          active={isActive('/dashboard/settings')}
+          active={isActive('/dashboard/settings') && !isActive('/dashboard/settings/pip-templates')}
         />
+        {/* PIP Templates management removed */}
       </div>
       
       {/* Help & Resources */}

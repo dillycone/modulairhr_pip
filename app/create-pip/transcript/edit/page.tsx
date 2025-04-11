@@ -1,33 +1,66 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranscriptFlow } from '../_context/transcript-flow-context';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Clock, Tag } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
+import { 
+  Breadcrumb, 
+  BreadcrumbItem, 
+  BreadcrumbLink, 
+  BreadcrumbList, 
+  BreadcrumbPage, 
+  BreadcrumbSeparator 
+} from "@/components/ui/breadcrumb";
 
 export default function EditTranscriptPage() {
   const router = useRouter();
-  const [title, setTitle] = useState('Untitled Transcript');
+  const { state, dispatch } = useTranscriptFlow();
+  const [title, setTitle] = useState(state.title || 'Untitled Transcript');
   const [transcript, setTranscript] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
 
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      const storedTranscript = sessionStorage.getItem('uploadedTranscript');
-      if (storedTranscript) {
-        setTranscript(storedTranscript);
-      } else {
-      }
-      setIsLoading(false);
+  // Estimate duration based on word count (assuming average speaking pace)
+  const estimatedDuration = useMemo(() => {
+    if (!transcript) return '--:--';
+    
+    // Average speaking pace is around 150 words per minute
+    const wordCount = transcript.split(/\s+/).filter(Boolean).length;
+    const durationInMinutes = Math.max(1, Math.ceil(wordCount / 150));
+    
+    const hours = Math.floor(durationInMinutes / 60);
+    const minutes = durationInMinutes % 60;
+    
+    if (hours > 0) {
+      return `${hours}h ${minutes}m`;
     } else {
-       setIsLoading(false);
+      return `${minutes}m`;
     }
-  }, []);
+  }, [transcript]);
+
+  // Format the transcript display with styled timestamps
+  const formattedTranscript = useMemo(() => {
+    if (!transcript) return '';
+    
+    // Add styling to timestamps (format: MM:SS)
+    return transcript.replace(
+      /\b(\d{1,2}):(\d{2})\b/g, 
+      '<span class="text-indigo-600 font-semibold">$1:$2</span>'
+    );
+  }, [transcript]);
+
+  useEffect(() => {
+    if (state.transcript) {
+      setTranscript(state.transcript);
+    }
+    setIsLoading(false);
+  }, [state.transcript]);
 
   const handleBack = () => {
     router.back();
@@ -36,9 +69,13 @@ export default function EditTranscriptPage() {
   const handleSave = async () => {
     setIsSaving(true);
     
+    // Update context with edited transcript and title
+    dispatch({ type: 'SET_TRANSCRIPT', payload: transcript });
+    dispatch({ type: 'SET_TITLE', payload: title });
+    
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    router.push('/dashboard/create-pip/transcript/summarize');
+    router.push('/create-pip/transcript/summarize');
     
     setIsSaving(false);
   };
@@ -107,11 +144,11 @@ export default function EditTranscriptPage() {
           <div className="flex flex-wrap gap-4">
             <div className="flex items-center text-sm text-gray-500">
               <Clock className="h-4 w-4 mr-1" />
-              <span>Duration: --:--</span>
+              <span>Duration: {estimatedDuration}</span>
             </div>
             <div className="flex items-center text-sm text-gray-500">
               <Tag className="h-4 w-4 mr-1" />
-              <span>Speakers: ?</span>
+              <span>Speakers: {state.speakers?.length || 0}</span>
             </div>
           </div>
         </CardContent>
@@ -125,9 +162,19 @@ export default function EditTranscriptPage() {
           <Textarea
             value={transcript}
             onChange={(e) => setTranscript(e.target.value)}
-            className="min-h-[300px] font-mono text-sm"
+            className="min-h-[300px] font-mono text-sm mb-4"
             placeholder="Loading transcript... If this persists, try uploading again."
           />
+          
+          {transcript && (
+            <div className="mt-4 border rounded-md p-4 bg-gray-50">
+              <h3 className="text-sm font-medium mb-2 text-gray-700">Preview with timestamps:</h3>
+              <div 
+                className="font-mono text-sm whitespace-pre-wrap"
+                dangerouslySetInnerHTML={{ __html: formattedTranscript }}
+              />
+            </div>
+          )}
         </CardContent>
         <CardFooter className="flex justify-end space-x-4">
           <Button 
@@ -141,8 +188,17 @@ export default function EditTranscriptPage() {
             disabled={isSaving || transcript.trim() === ''}
             className="bg-indigo-600 hover:bg-indigo-700 text-white"
           >
-            {isSaving ? 'Saving...' : 'Save and Continue'}
-            {!isSaving && <Save className="ml-2 h-4 w-4" />}
+            {isSaving ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                Save and Continue
+                <Save className="ml-2 h-4 w-4" />
+              </>
+            )}
           </Button>
         </CardFooter>
       </Card>

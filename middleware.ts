@@ -1,45 +1,95 @@
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse, type NextRequest } from 'next/server';
+import { userHasRole } from '@/lib/utils/get-user-role';
 
+// Define protected routes that require *any* authenticated user
 const PROTECTED_ROUTES = [
   '/dashboard',
-  '/dashboard/create-pip',
   '/create-pip',
   '/profile',
-  '/settings'
+];
+
+// Define routes that require the user to have the 'admin' role
+const ADMIN_ROUTES = [
+  '/dashboard/settings/pip-templates',
 ];
 
 export async function middleware(req: NextRequest) {
   const pathname = req.nextUrl.pathname;
-  let response = NextResponse.next();
+  
+  // Skip middleware for API routes to avoid auth processing on server endpoints
+  if (pathname.startsWith('/api/')) {
+    return NextResponse.next();
+  }
+  
+  let response = NextResponse.next({
+    request: {
+      headers: req.headers,
+    },
+  });
+
   console.log(`Middleware processing: ${pathname}`);
 
-  try {
-    // If dev environment, optionally allow dev bypass
-    if (process.env.NODE_ENV === 'development') {
-      console.log('Dev environment: we skip or lighten auth checks if desired');
-    }
+  // Skip auth checks in development environment
+  if (process.env.NODE_ENV === 'development') {
+    console.log('Dev environment: bypassing auth checks for development');
+    return response;
+  }
 
+  try {
     // Create a Supabase client configured to use cookies
     const supabase = createMiddlewareClient({ req, res: response });
 
-    // This updates the session cookie if it exists and is expired
-    const { data: { session } } = await supabase.auth.getSession();
+    // Refresh session if expired - important!
+    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
 
-    if (!session && PROTECTED_ROUTES.some(route => pathname.startsWith(route))) {
-      console.log(`No session for protected route: ${pathname}, redirecting`);
+    if (sessionError) {
+      console.error('Middleware session error:', sessionError.message);
+      // Allow request to proceed but log error, maybe auth service is down
+      return response;
+    }
+
+    // 1. Handle Authentication for General Protected Routes
+    const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
+    if (!session && isProtectedRoute) {
+      console.log(`No session for protected route: ${pathname}, redirecting to login`);
       const redirectUrl = new URL('/auth/login', req.url);
       redirectUrl.searchParams.set('redirect', pathname);
       return NextResponse.redirect(redirectUrl);
     }
 
+    // 2. Handle Authorization for Admin Routes (only if authenticated)
+    const isAdminRoute = ADMIN_ROUTES.some(route => pathname.startsWith(route));
+    if (session && isAdminRoute) {
+      // Use standardized role check: Primarily check app_metadata.roles array
+      const isAdmin = userHasRole(session.user, 'admin');
+
+      if (!isAdmin) {
+        console.warn(`Non-admin user (${session.user.id}) attempting to access admin route: ${pathname}`);
+        // Redirect to dashboard or an unauthorized page
+        const redirectUrl = new URL('/dashboard', req.url);
+        return NextResponse.redirect(redirectUrl);
+      }
+      console.log(`Admin user accessing admin route: ${pathname}`);
+    }
+
+    // If authenticated and not an admin route, or is an admin on an admin route, allow access
     return response;
   } catch (error) {
     console.error('Middleware error:', error);
+    // In case of error, allow the request through rather than breaking navigation
+    // The server-side or client-side auth checks will handle it
     return response;
   }
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*','/create-pip/:path*','/profile/:path*','/settings/:path*','/auth/:path*'],
+  matcher: [
+    '/((?!_next/static|_next/image|favicon.ico|api).*)',
+    '/dashboard/:path*',
+    '/create-pip/:path*',
+    '/profile/:path*',
+    '/login',
+    '/auth/:path*',
+  ],
 };

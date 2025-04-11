@@ -21,15 +21,15 @@ export default function TranscriptSourcePage() {
   };
 
   const handleSavedTranscripts = () => {
-    router.push('/dashboard/create-pip/transcript/saved');
+    router.push('/create-pip/transcript/saved');
   };
 
   const handleUploadAudio = () => {
-    router.push('/dashboard/create-pip/transcript/upload');
+    router.push('/create-pip/transcript/upload');
   };
 
   const handleRecordNew = () => {
-    router.push('/dashboard/create-pip/transcript/record');
+    router.push('/create-pip/transcript/record');
   };
 
   return (
@@ -41,7 +41,7 @@ export default function TranscriptSourcePage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard/create-pip">Create PIP</BreadcrumbLink>
+            <BreadcrumbLink href="/create-pip">Create PIP</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

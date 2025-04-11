@@ -12,6 +12,15 @@ const nextConfig = {
   },
   typescript: {
     ignoreBuildErrors: true,
+  },
+  async redirects() {
+    return [
+      {
+        source: '/dashboard/create-pip/:path*',
+        destination: '/create-pip/:path*',
+        permanent: true,
+      },
+    ]
   }
 }
 

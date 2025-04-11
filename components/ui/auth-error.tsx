@@ -7,7 +7,45 @@ import {
 } from 'lucide-react';
 import { cva, type VariantProps } from 'class-variance-authority';
 import { cn } from '@/lib/utils';
-import { AuthError as AuthErrorType, AuthErrorCode } from '@/hooks/useAuth';
+// Import the enum directly to avoid dependency issues
+enum AuthErrorCode {
+  // Session-related errors
+  SESSION_INIT_FAILED = 'session-init-failed',
+  SESSION_FETCH_FAILED = 'session-fetch-failed',
+  SESSION_EXPIRED = 'session-expired',
+  
+  // Sign-in related errors
+  SIGNIN_INVALID_CREDENTIALS = 'signin-invalid-credentials',
+  SIGNIN_USER_NOT_FOUND = 'signin-user-not-found',
+  SIGNIN_EMAIL_NOT_CONFIRMED = 'signin-email-not-confirmed',
+  SIGNIN_RATE_LIMITED = 'signin-rate-limited',
+  SIGNIN_GENERIC_ERROR = 'signin-generic-error',
+  
+  // Sign-up related errors
+  SIGNUP_EMAIL_IN_USE = 'signup-email-in-use',
+  SIGNUP_INVALID_EMAIL = 'signup-invalid-email',
+  SIGNUP_WEAK_PASSWORD = 'signup-weak-password',
+  SIGNUP_GENERIC_ERROR = 'signup-generic-error',
+  
+  // Sign-out related errors
+  SIGNOUT_FAILED = 'signout-failed',
+  
+  // Password reset related errors
+  PASSWORD_RESET_FAILED = 'password-reset-failed',
+  PASSWORD_UPDATE_FAILED = 'password-update-failed',
+  
+  // Generic errors
+  NETWORK_ERROR = 'network-error',
+  UNKNOWN_ERROR = 'unknown-error',
+  AUTH_STATE_CHANGE_ERROR = 'auth-state-change-error'
+}
+
+// Define a simplified auth error type to avoid dependency issues
+interface AuthErrorType {
+  message: string;
+  code?: AuthErrorCode;
+  original?: unknown;
+}
 
 /**
  * Variants for the AuthError component

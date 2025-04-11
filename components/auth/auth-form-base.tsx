@@ -5,7 +5,6 @@ import { UseFormReturn } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { AuthError } from "@/components/ui/auth-error";
-import { AuthError as AuthErrorType } from "@/hooks/useAuth";
 
 /**
  * This component factors out common auth form styling
@@ -15,7 +14,7 @@ import { AuthError as AuthErrorType } from "@/hooks/useAuth";
 interface AuthFormBaseProps {
   form: UseFormReturn<any>;
   onSubmit: (values: any) => void | Promise<void>;
-  error?: AuthErrorType | null | string;
+  error?: any | null | string;
   isLoading?: boolean;
   buttonText: string;
   schemaName?: string;

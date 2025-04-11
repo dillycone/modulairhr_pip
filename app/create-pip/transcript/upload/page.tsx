@@ -2,6 +2,7 @@
 
 import { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranscriptFlow } from '../_context/transcript-flow-context';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Upload, Loader2, Plus, Trash2 } from "lucide-react";
@@ -25,6 +26,7 @@ interface Speaker {
 
 export default function UploadAudioPage() {
   const router = useRouter();
+  const { dispatch } = useTranscriptFlow();
   const [file, setFile] = useState<File | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -125,15 +127,15 @@ Example Output Format:
         throw new Error(result.error || 'Transcription failed');
       }
       
-      // Store transcript and speaker information in Session Storage
-      sessionStorage.setItem('uploadedTranscript', result.transcript);
-      sessionStorage.setItem('speakers', JSON.stringify(speakers));
+      // Update context with transcript and speaker information
+      dispatch({ type: 'SET_TRANSCRIPT', payload: result.transcript });
+      dispatch({ type: 'SET_SPEAKERS', payload: speakers });
       
       setSuccess(true);
       
       // Redirect to transcript editing page after a short delay to show success message
       setTimeout(() => {
-        router.push('/dashboard/create-pip/transcript/edit');
+        router.push('/create-pip/transcript/edit');
       }, 1500);
       
     } catch (err) {

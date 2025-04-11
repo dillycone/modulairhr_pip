@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranscriptFlow } from '../_context/transcript-flow-context';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Save, Sparkles } from "lucide-react";
@@ -18,8 +19,9 @@ import {
 
 export default function SummarizeTranscriptPage() {
   const router = useRouter();
+  const { state, dispatch } = useTranscriptFlow();
   const [isGenerating, setIsGenerating] = useState(false);
-  const [summary, setSummary] = useState('');
+  const [summary, setSummary] = useState(state.summary || '');
   const [isSaving, setIsSaving] = useState(false);
 
   const handleBack = () => {
@@ -51,11 +53,14 @@ Action items:
   const handleSave = async () => {
     setIsSaving(true);
     
+    // Update context with summary
+    dispatch({ type: 'SET_SUMMARY', payload: summary });
+    
     // Simulate saving
     await new Promise(resolve => setTimeout(resolve, 1500));
     
-    // Navigate to PIP creation
-    router.push('/dashboard/create-pip/details');
+    // Navigate to PIP creation (now moved to transcript path)
+    router.push('/create-pip/transcript/details');
     
     setIsSaving(false);
   };

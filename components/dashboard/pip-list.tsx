@@ -53,8 +53,8 @@ const getWarningLevelBadgeColor = (level: WarningLevel): string => {
 };
 
 export default function PipList({ pipData }: PipListProps) {
-  // Get only active PIPs
-  const activePips = pipData.filter(pip => pip.accountabilityStatus === 'Active');
+  // Get only active PIPs with fallback for missing accountabilityStatus
+  const activePips = pipData.filter(pip => (pip.accountabilityStatus || 'Active') === 'Active');
 
   if (activePips.length === 0) {
     return (
@@ -83,14 +83,14 @@ export default function PipList({ pipData }: PipListProps) {
             <TableRow key={pip.id}>
               <TableCell className="font-medium">{pip.employeeName}</TableCell>
               <TableCell>
-                <Badge className={cn(getWarningLevelBadgeColor(pip.warningLevel))}>
-                  {pip.warningLevel}
+                <Badge className={cn(getWarningLevelBadgeColor(pip.warningLevel || 'First Warning'))}>
+                  {pip.warningLevel || 'First Warning'}
                 </Badge>
               </TableCell>
               <TableCell>{pip.managerName}</TableCell>
               <TableCell>
-                <Badge variant={getStatusBadgeVariant(pip.status)} className={cn(getStatusBadgeColor(pip.status))}>
-                  {pip.status}
+                <Badge variant={getStatusBadgeVariant(pip.status || 'Draft')} className={cn(getStatusBadgeColor(pip.status || 'Draft'))}>
+                  {pip.status || 'Draft'}
                 </Badge>
               </TableCell>
               <TableCell>

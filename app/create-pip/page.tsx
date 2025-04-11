@@ -16,11 +16,11 @@ export default function CreatePIP() {
   const router = useRouter();
 
   const handleManualCreate = () => {
-    router.push('/create-pip/manual');
+    router.push('/dashboard/create-pip/manual');
   };
 
   const handleTranscriptCreate = () => {
-    router.push('/create-pip/transcript-source');
+    router.push('/dashboard/create-pip/transcript-source');
   };
 
   return (

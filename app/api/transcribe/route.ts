@@ -38,14 +38,16 @@ const ratelimit = new Ratelimit({
 });
 
 // Required roles to access this endpoint
-const REQUIRED_ROLES = ['admin', 'manager', 'hr'] as const;
+const REQUIRED_ROLES = ['admin', 'manager', 'hr_admin'] as const;
 type AllowedRole = typeof REQUIRED_ROLES[number];
 
 export async function POST(req: NextRequest) {
   try {
     // Initialize Supabase client
     const cookieStore = cookies();
-    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore });
+    const supabase = createRouteHandlerClient<Database>({ 
+      cookies: () => cookieStore 
+    });
 
     // Check if user is authenticated
     const { data: { session }, error: authError } = await supabase.auth.getSession();
@@ -58,13 +60,20 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    // Check user roles
-    const userRoles = session.user.app_metadata?.roles || [];
-    if (!userRoles.some((role: string) => REQUIRED_ROLES.includes(role as AllowedRole))) {
-      return NextResponse.json(
-        { error: 'Forbidden - Insufficient permissions' },
-        { status: 403 }
-      );
+    // Development environment check - bypass role verification in dev
+    if (process.env.NODE_ENV === 'development') {
+      console.log('Dev environment: bypassing role checks for development');
+    } else {
+      // Check user roles - standardized approach
+      const userRoles = session.user.app_metadata?.roles as string[] | undefined || [];
+      const canAccess = REQUIRED_ROLES.some(requiredRole => userRoles.includes(requiredRole));
+      
+      if (!canAccess) {
+        return NextResponse.json(
+          { error: 'Forbidden - Insufficient permissions' },
+          { status: 403 }
+        );
+      }
     }
 
     // Apply rate limiting
@@ -163,4 +172,4 @@ export async function POST(req: NextRequest) {
     console.error('Error processing transcription request:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
-} 
+}

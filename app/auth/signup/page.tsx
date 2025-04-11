@@ -5,17 +5,17 @@ import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { SignUpForm } from '@/components/auth/signup-form';
 import { Suspense } from 'react';
+import { safeRedirect } from '@/lib/auth-navigation';
 
 function SignupContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirect') || '/dashboard';
+  const redirectParam = searchParams.get('redirect');
+  const validRedirectPath = safeRedirect(redirectParam);
 
   const handleSignUpSuccess = () => {
     // After signup, redirect to login with the same redirect parameter
-    const loginUrl = new URL('/auth/login', window.location.origin);
-    loginUrl.searchParams.set('redirect', redirectTo);
-    router.push(loginUrl.toString());
+    router.push(`/auth/login?redirect=${encodeURIComponent(validRedirectPath)}`);
   };
 
   return (
@@ -34,7 +34,7 @@ function SignupContent() {
           <div className="text-center text-sm">
             Already have an account?{' '}
             <Link 
-              href={`/auth/login${redirectTo !== '/dashboard' ? `?redirect=${encodeURIComponent(redirectTo)}` : ''}`} 
+              href={`/auth/login?redirect=${encodeURIComponent(validRedirectPath)}`} 
               className="text-primary hover:underline"
             >
               Log in
