@@ -4,6 +4,9 @@ import { env } from '@/lib/env';
 import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import type { Database } from '@/types/supabase';
+import { Ratelimit } from '@upstash/ratelimit';
+import { Redis } from '@upstash/redis';
+import { z } from 'zod';
 
 // Log environment status
 console.log('Environment check for transcribe API:');
@@ -16,6 +19,28 @@ const MODEL_NAME = "gemini-2.5-pro-preview-03-25";
 
 // Use API key from environment
 const API_KEY = env.GEMINI_API_KEY;
+
+// Input validation schemas
+const speakerSchema = z.object({
+  name: z.string().min(1).max(100)
+});
+
+const transcribeInputSchema = z.object({
+  file: z.instanceof(File),
+  prompt: z.string().min(1).max(1000),
+  speakers: z.array(speakerSchema).optional()
+});
+
+// Rate limiter: 10 requests per hour per user
+const ratelimit = new Ratelimit({
+  redis: Redis.fromEnv(),
+  limiter: Ratelimit.slidingWindow(10, '1 h'),
+  analytics: true,
+});
+
+// Required roles to access this endpoint
+const REQUIRED_ROLES = ['admin', 'manager', 'hr'] as const;
+type AllowedRole = typeof REQUIRED_ROLES[number];
 
 export async function POST(req: NextRequest) {
   try {
@@ -34,36 +59,71 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    const genAI = new GoogleGenerativeAI(API_KEY);
-    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
+    // Check user roles
+    const userRoles = session.user.app_metadata?.roles || [];
+    if (!userRoles.some((role: string) => REQUIRED_ROLES.includes(role as AllowedRole))) {
+      return NextResponse.json(
+        { error: 'Forbidden - Insufficient permissions' },
+        { status: 403 }
+      );
+    }
 
+    // Apply rate limiting
+    const { success, limit, reset, remaining } = await ratelimit.limit(session.user.id);
+    if (!success) {
+      return NextResponse.json({
+        error: 'Too many requests',
+        limit,
+        reset,
+        remaining
+      }, { 
+        status: 429,
+        headers: {
+          'X-RateLimit-Limit': limit.toString(),
+          'X-RateLimit-Remaining': remaining.toString(),
+          'X-RateLimit-Reset': reset.toString()
+        }
+      });
+    }
+
+    // Parse and validate input
     const formData = await req.formData();
     const file = formData.get('file') as File | null;
     const prompt = formData.get('prompt') as string | null;
     const speakersJson = formData.get('speakers') as string | null;
 
-    if (!file) {
-      return NextResponse.json({ error: 'No file uploaded' }, { status: 400 });
+    try {
+      const speakers = speakersJson ? JSON.parse(speakersJson) : undefined;
+      transcribeInputSchema.parse({
+        file,
+        prompt,
+        speakers
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 });
+      }
+      throw error;
     }
 
-    if (!prompt) {
-      return NextResponse.json({ error: 'No prompt provided' }, { status: 400 });
-    }
+    // Rest of the existing code remains unchanged
+    const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
     // Convert file to Buffer and then to base64
-    const buffer = Buffer.from(await file.arrayBuffer());
+    const buffer = Buffer.from(await file!.arrayBuffer());
     const base64Audio = buffer.toString('base64');
 
     const audioPart = {
       inlineData: {
-        mimeType: file.type,
+        mimeType: file!.type,
         data: base64Audio,
       },
     };
 
     const parts = [
       audioPart,
-      { text: prompt },
+      { text: prompt! },
     ];
 
     const result = await model.generateContent({
