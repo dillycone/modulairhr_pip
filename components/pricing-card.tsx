@@ -49,7 +49,7 @@ export default function PricingCard({
 
   return (
     <Card
-      className={`border-2 ${classes.border} transition-all ${popular ? `shadow-xl ${classes.shadow} scale-105` : "hover:shadow-lg hover:-translate-y-1"} duration-300 relative`}
+      className={`border-2 ${classes.border} transition-all ${popular ? `shadow-xl ${classes.shadow} scale-105` : "hover:shadow-lg hover:-translate-y-1"} duration-300 relative flex flex-col`}
     >
       {popular && (
         <div
@@ -66,8 +66,8 @@ export default function PricingCard({
         </div>
         <p className="text-slate-600 mt-2">{description}</p>
       </CardHeader>
-      <CardContent>
-        <ul className="space-y-3 mt-4 mb-6">
+      <CardContent className="flex flex-col flex-grow">
+        <ul className="space-y-3 mt-4 mb-6 flex-grow">
           {features.map((feature, index) => (
             <li key={index} className="flex items-start gap-2">
               <Check className={`h-5 w-5 ${classes.check} mt-0.5 flex-shrink-0`} />

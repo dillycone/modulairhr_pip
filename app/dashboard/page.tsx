@@ -47,7 +47,7 @@ export default function DashboardPage() {
   const accountabilityCount = pips.filter(p => p.accountabilityStatus === 'Accountability Period').length;
 
   const handleCreateNewPip = () => {
-    router.push('/dashboard/create-pip');
+    router.push('/create-pip');
   };
 
   return (

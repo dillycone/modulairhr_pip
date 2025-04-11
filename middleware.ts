@@ -4,6 +4,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 const PROTECTED_ROUTES = [
   '/dashboard',
   '/dashboard/create-pip',
+  '/create-pip',
   '/profile',
   '/settings'
 ];
@@ -40,5 +41,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/dashboard/:path*','/profile/:path*','/settings/:path*','/auth/:path*'],
+  matcher: ['/dashboard/:path*','/create-pip/:path*','/profile/:path*','/settings/:path*','/auth/:path*'],
 };

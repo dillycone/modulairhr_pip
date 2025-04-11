@@ -82,7 +82,7 @@ export default function DashboardSidebar() {
       {/* Quick Actions */}
       <div className="p-4">
         <Button 
-          onClick={() => router.push('/dashboard/create-pip')} 
+          onClick={() => router.push('/create-pip')} 
           className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
         >
           <PlusCircle className="h-4 w-4 mr-2" /> Create New PIP
