@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server';
 
 const PROTECTED_ROUTES = [
   '/dashboard',
+  '/dashboard/create-pip',
   '/profile',
   '/settings'
 ];
