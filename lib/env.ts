@@ -1,46 +1,38 @@
+import { z } from 'zod';
+
 /**
- * Environment variables with validation
+ * Environment variables schema and validation
  */
 
-// Validate that required environment variables are present
+const envSchema = z.object({
+  // Supabase - required public variables
+  NEXT_PUBLIC_SUPABASE_URL: z.string().url(),
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: z.string().min(1),
+  
+  // Gemini - required server-side only
+  GEMINI_API_KEY: z.string().min(1),
+  GEMINI_MODEL: z.string().default('gemini-1.5-flash'),
+});
+
+// Validate environment variables at startup
 function validateEnv() {
-  const requiredEnvVars = [
-    'NEXT_PUBLIC_SUPABASE_URL',
-    'NEXT_PUBLIC_SUPABASE_ANON_KEY',
-    'GEMINI_API_KEY'
-  ];
-
-  const missingVars = requiredEnvVars.filter(
-    varName => typeof process.env[varName] === 'undefined'
-  );
-
-  if (missingVars.length > 0) {
-    console.warn(`⚠️ Missing environment variable(s): ${missingVars.join(', ')}`);
-    console.warn('Please check your .env.local file and restart the server.');
+  try {
+    return envSchema.parse({
+      NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      GEMINI_API_KEY: process.env.GEMINI_API_KEY,
+      GEMINI_MODEL: process.env.GEMINI_MODEL,
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      const missingVars = error.errors.map(err => err.path.join('.'));
+      console.error('❌ Invalid/missing environment variables:');
+      console.error(error.errors.map(err => `- ${err.path.join('.')}: ${err.message}`).join('\n'));
+      throw new Error(`Missing required environment variables: ${missingVars.join(', ')}`);
+    }
+    throw error;
   }
 }
 
-// Run validation in development
-if (process.env.NODE_ENV === 'development') {
-  validateEnv();
-}
-
-// Export typed environment variables
-export const env = {
-  // Supabase
-  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-  
-  // Gemini
-  GEMINI_API_KEY: process.env.GEMINI_API_KEY || '',
-  GEMINI_MODEL: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
-  
-  // Helper to check if all required variables are set
-  isComplete: () => {
-    return !!(
-      process.env.NEXT_PUBLIC_SUPABASE_URL &&
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
-      process.env.GEMINI_API_KEY
-    );
-  }
-}; 
+// Validate and export typed environment variables
+export const env = validateEnv(); 
