@@ -1,9 +1,10 @@
 import { User } from '@supabase/supabase-js'
+import { AuthError as HookAuthError } from '@/hooks/useAuth'
 
 export interface AuthState {
   user: User | null
   isLoading: boolean
-  error: Error | null
+  error: HookAuthError | null
 }
 
 export interface AuthContextType extends AuthState {

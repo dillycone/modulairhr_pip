@@ -10,12 +10,14 @@ import { Button } from '@/components/ui/button';
 import { PlusCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
+import { useToast } from '@/components/ui/use-toast';
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
   const [pips, setPips] = useState<any[]>([]);
   const [error, setError] = useState<string | null>(null);
   const router = useRouter();
+  const { toast } = useToast();
 
   useEffect(() => {
     async function fetchPips() {
@@ -23,8 +25,9 @@ export default function DashboardPage() {
       if (!user) return;
 
       try {
-        // Always use mock data in development to avoid database issues
-        if (process.env.NODE_ENV === 'development') {
+        // Use mock data only in development if explicitly enabled
+        // This allows for local development without a DB connection
+        if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') {
           console.log('DEV MODE: Using mock PIP data');
           const mockData = [
             {
@@ -59,50 +62,47 @@ export default function DashboardPage() {
           return;
         }
 
-        // Production - fetch from database
-        const { data, error } = await supabase
-          .from('pips')
-          .select('*');
-
-        if (error) {
-          console.error('Error fetching PIPs:', error.message || error);
-          setError(`Error fetching PIPs: ${error.message}`);
-          
-          // Fall back to mock data
-          const mockData = [
-            {
-              id: 'mock-1',
-              employee_name: 'Jane Smith',
-              manager_name: 'John Manager',
-              start_date: '2023-12-01',
-              end_date: '2024-01-31',
-              status: 'On Track',
-              progress: 65,
-              next_due_date: '2024-01-15',
-              warning_level: 'First Warning',
-              accountability_status: 'Active',
-              created_by: user.id,
-            }
-          ];
-          const adaptedPips = mockData.map(adaptPipForUI);
-          setPips(adaptedPips);
-        } else {
-          console.log('Fetched PIPs:', data);
-          // Convert snake_case database fields to camelCase for UI
-          const adaptedPips = (data as Pip[]).map(adaptPipForUI);
-          setPips(adaptedPips);
-          setError(null);
+        // Use our new API endpoint to fetch PIPs
+        const response = await fetch('/api/pips');
+        if (!response.ok) {
+          const responseData = await response.json();
+          throw new Error(responseData.error || 'Failed to fetch PIPs from API');
         }
+        
+        const result = await response.json();
+        
+        // Handle result even if data is empty array
+        if (!result.data && result.data !== null && !Array.isArray(result.data)) {
+          console.warn('No data or invalid data returned from API:', result);
+          setPips([]);
+          setError("No PIPs found for your account. You may not have permissions to view any PIPs.");
+          return;
+        }
+        
+        console.log('Fetched PIPs from API:', result.data);
+        // Convert snake_case database fields to camelCase for UI (if data exists)
+        const adaptedPips = (Array.isArray(result.data) ? result.data : []).map(adaptPipForUI);
+        setPips(adaptedPips);
+        setError(null);
+        
       } catch (err: any) {
         console.error('Exception fetching PIPs:', err);
-        setError(`Error: ${err.message || 'Unknown error'}`);
+        const errorMsg = `Error: ${err.message || 'Unknown error'}`;
+        setError(errorMsg);
+        setPips([]); // Clear existing pips on error
+        
+        toast({
+          variant: "destructive",
+          title: "Data Fetch Error",
+          description: errorMsg,
+        });
       }
     }
 
     if (!loading) {
       fetchPips();
     }
-  }, [user, loading]);
+  }, [user, loading, toast]);
 
   // Calculate summary stats from pipData - with safe default values
   const activePips = pips.filter(p => (p.accountabilityStatus || 'Active') === 'Active').length;
@@ -127,15 +127,19 @@ export default function DashboardPage() {
       </div>
 
       {error && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
+        <Alert variant="destructive" className="mb-6 border-red-500 shadow-md">
+          <AlertTitle className="text-lg font-semibold">Data Loading Error</AlertTitle>
+          <AlertDescription className="text-sm">{error}</AlertDescription>
         </Alert>
       )}
 
       {loading ? (
         <div className="flex justify-center items-center h-64">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-indigo-600"></div>
+        </div>
+      ) : error ? (
+        <div className="flex flex-col items-center justify-center h-64 text-slate-500">
+          <p>Unable to load dashboard data. Please try again later.</p>
         </div>
       ) : (
         <>

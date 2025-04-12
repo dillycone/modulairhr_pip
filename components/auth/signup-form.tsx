@@ -1,33 +1,32 @@
 'use client';
 
-import { AuthFormBase } from "./auth-form-base";
-import { useAuth } from "@/hooks/useAuth";
-import { z } from "zod";
+import { AuthFormBase, AuthFormValues } from "./auth-form-base";
+import { useSignUp } from "@/hooks/useSignUp";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { toast } from "@/components/ui/use-toast";
+import { signUpSchema } from "@/lib/validations/auth";
 
-const signupSchema = z
-  .object({
-    email: z.string().email("Please enter a valid email address"),
-    password: z.string().min(6, "Password must be at least 6 characters"),
-    confirmPassword: z.string().min(6, "Password must be at least 6 characters"),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords don't match",
-    path: ["confirmPassword"],
-  });
-
-type SignupFormValues = z.infer<typeof signupSchema>;
+// Use the centralized schema from validations
+type SignupFormValues = {
+  email: string;
+  password: string;
+  confirmPassword: string;
+};
 
 interface SignUpFormProps {
-  onSignUpSuccess: () => void;
+  onSignUpSuccess: (email: string) => void;
 }
 
 export function SignUpForm({ onSignUpSuccess }: SignUpFormProps) {
-  const { signUp, error: authError } = useAuth();
+  const { signUp, error: authError } = useSignUp();
   const form = useForm<SignupFormValues>({
-    resolver: zodResolver(signupSchema),
+    resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      confirmPassword: ""
+    }
   });
 
   async function handleSubmit(values: SignupFormValues) {
@@ -37,7 +36,7 @@ export function SignUpForm({ onSignUpSuccess }: SignUpFormProps) {
         title: "Account created!",
         description: "Please check your email to confirm your registration.",
       });
-      onSignUpSuccess();
+      onSignUpSuccess(values.email);
     }
   }
 

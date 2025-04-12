@@ -12,8 +12,6 @@ export default function ResetPasswordPage() {
   
   const handleSuccess = () => {
     setIsSuccess(true);
-    // Delay navigation to show success message
-    setTimeout(() => router.push('/auth/login'), 2000);
   };
 
   return (
@@ -23,15 +21,23 @@ export default function ResetPasswordPage() {
           <CardTitle className="text-2xl text-center">Reset Password</CardTitle>
           <CardDescription className="text-center">
             {isSuccess 
-              ? "Password reset email sent! Redirecting to login..." 
+              ? "Password reset email sent!" 
               : "Enter your email to receive a password reset link"}
           </CardDescription>
         </CardHeader>
         <CardContent>
           {!isSuccess && <PasswordForm mode="reset" onSuccess={handleSuccess} />}
           {isSuccess && (
-            <div className="py-4 text-center text-green-600">
-              Check your email for the password reset link.
+            <div className="py-4 text-center">
+              <div className="text-green-600 mb-4">
+                Check your email for the password reset link.
+              </div>
+              <button 
+                onClick={() => router.push('/auth/login')}
+                className="w-full py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-md"
+              >
+                Back to Login
+              </button>
             </div>
           )}
         </CardContent>

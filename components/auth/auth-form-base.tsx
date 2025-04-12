@@ -4,25 +4,36 @@ import Link from "next/link";
 import { UseFormReturn } from "react-hook-form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { AuthError } from "@/components/ui/auth-error";
+import { AuthError as HookAuthError } from "@/hooks/useAuth";
+import { Eye, EyeOff } from "lucide-react";
 
 /**
  * This component factors out common auth form styling
  * for both login and signup, reducing code duplication.
  */
 
-interface AuthFormBaseProps {
-  form: UseFormReturn<any>;
-  onSubmit: (values: any) => void | Promise<void>;
-  error?: any | null | string;
+export type AuthFormValues = {
+  email: string;
+  password: string;
+  confirmPassword?: string;
+  rememberMe?: boolean;
+};
+
+interface AuthFormBaseProps<T extends AuthFormValues = AuthFormValues> {
+  form: UseFormReturn<T>;
+  onSubmit: (values: T) => void | Promise<void>;
+  error?: AuthError | null | string;
   isLoading?: boolean;
   buttonText: string;
   schemaName?: string;
   showForgotPasswordLink?: boolean;
   showConfirmPassword?: boolean; // used by signup
+  showRememberMe?: boolean; // for login form
 }
 
-export function AuthFormBase({
+export function AuthFormBase<T extends AuthFormValues>({
   form,
   onSubmit,
   error,
@@ -30,12 +41,18 @@ export function AuthFormBase({
   buttonText,
   showForgotPasswordLink,
   showConfirmPassword,
-}: AuthFormBaseProps) {
+  showRememberMe,
+}: AuthFormBaseProps<T>) {
   const {
     register,
     handleSubmit,
     formState: { errors },
+    watch,
+    setValue,
   } = form;
+  
+  const [showPassword, setShowPassword] = React.useState(false);
+  const [showConfirmPasswordField, setShowConfirmPasswordField] = React.useState(false);
 
   // Determine if we have a configuration error
   const errorMessage = typeof error === 'string' ? error : error?.message || '';
@@ -118,13 +135,23 @@ export function AuthFormBase({
                 </Link>
               )}
             </div>
-            <Input
-              id="password"
-              placeholder="••••••••"
-              type="password"
-              disabled={isLoading}
-              {...register("password")}
-            />
+            <div className="relative">
+              <Input
+                id="password"
+                placeholder="••••••••"
+                type={showPassword ? "text" : "password"}
+                disabled={isLoading}
+                {...register("password")}
+              />
+              <button
+                type="button"
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                onClick={() => setShowPassword(!showPassword)}
+                tabIndex={-1}
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
+            </div>
             {errors?.password?.message && (
               <p className="text-sm text-red-500">{String(errors.password.message)}</p>
             )}
@@ -138,18 +165,46 @@ export function AuthFormBase({
               >
                 Confirm Password
               </label>
-              <Input
-                id="confirmPassword"
-                placeholder="••••••••"
-                type="password"
-                disabled={isLoading}
-                {...register("confirmPassword")}
-              />
+              <div className="relative">
+                <Input
+                  id="confirmPassword"
+                  placeholder="••••••••"
+                  type={showPassword ? "text" : "password"}
+                  disabled={isLoading}
+                  {...register("confirmPassword")}
+                />
+                <button
+                  type="button"
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                  onClick={() => setShowPassword(!showPassword)}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
               {errors?.confirmPassword?.message && (
                 <p className="text-sm text-red-500">
                   {String(errors.confirmPassword.message)}
                 </p>
               )}
+            </div>
+          )}
+          
+          {showRememberMe && (
+            <div className="flex items-center space-x-2">
+              <Checkbox 
+                id="rememberMe" 
+                {...register("rememberMe")} 
+                checked={watch("rememberMe")}
+                onCheckedChange={(checked) => setValue("rememberMe", !!checked)}
+                disabled={isLoading}
+              />
+              <label
+                htmlFor="rememberMe"
+                className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+              >
+                Remember me
+              </label>
             </div>
           )}
 

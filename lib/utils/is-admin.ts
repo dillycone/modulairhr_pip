@@ -1,38 +1,40 @@
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
-import { getUserRole, userHasRole } from './get-user-role';
+import { shouldBypassAuth } from '@/lib/env';
+import { UserRole } from '@/types/roles';
+import { userHasRole } from './permissions';
 
 /**
- * Check if a user object has admin privileges
+ * Check if a user is an admin
  * @param user Supabase user object 
- * @returns Boolean indicating if user has admin privileges
+ * @returns Boolean indicating if user is an admin
  */
 export function isUserAdmin(user: User | null): boolean {
-  // In development mode, always return true for testing
-  if (process.env.NODE_ENV === 'development') {
+  // In development mode, can bypass auth checks
+  if (shouldBypassAuth()) {
     console.log("DEV MODE: Auto-granting admin permissions");
     return true;
   }
   
-  return userHasRole(user, 'admin') || userHasRole(user, 'hr_admin');
+  return userHasRole(user, UserRole.ADMIN);
 }
 
 /**
- * Check if the current user has admin permissions
+ * Check if the current user is an admin
  * @param supabase Supabase client instance
- * @returns Boolean indicating if user has admin privileges
+ * @returns Boolean indicating if user is an admin
  */
 export async function isAdmin(
   supabase: SupabaseClient<Database>
 ): Promise<boolean> {
-  // In development mode, always return true for testing
-  if (process.env.NODE_ENV === 'development') {
+  // In development mode, can bypass auth checks
+  if (shouldBypassAuth()) {
     console.log("DEV MODE: Auto-granting admin permissions");
     return true;
   }
   
-  const role = await getUserRole(supabase);
+  // Get the current user
+  const { data: { user } } = await supabase.auth.getUser();
   
-  // Allow both 'admin' and 'hr_admin' roles
-  return role === 'admin' || role === 'hr_admin';
+  return isUserAdmin(user);
 }

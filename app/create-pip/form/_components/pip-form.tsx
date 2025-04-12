@@ -111,24 +111,29 @@ export function PipForm({ userId, template }: PipFormProps) {
         // --- Placeholder Substitution --- End
 
         try {
-            const { error } = await supabase
-                .from('pips')
-                .insert([
-                    {
-                        employee_name: data.employee_name,
-                        start_date: data.start_date.toISOString().slice(0, 10),
-                        end_date: data.end_date.toISOString().slice(0, 10),
-                        objectives: data.objectives,
-                        improvements_needed: data.improvements_needed,
-                        success_metrics: data.success_metrics,
-                        created_by: userId,
-                        status: 'draft',
-                        generated_content: generatedContent, // Save the substituted content
-                    },
-                ])
-                .select();
+            // Use the new API endpoint instead of directly accessing the database
+            const response = await fetch('/api/pips', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    employee_name: data.employee_name,
+                    start_date: data.start_date.toISOString().slice(0, 10),
+                    end_date: data.end_date.toISOString().slice(0, 10),
+                    objectives: data.objectives,
+                    improvements_needed: data.improvements_needed,
+                    success_metrics: data.success_metrics,
+                    created_by: userId,
+                    status: 'draft',
+                    generated_content: generatedContent, // Save the substituted content
+                }),
+            });
 
-            if (error) throw error;
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.error || 'Failed to create PIP');
+            }
 
             toast({
                 title: "PIP Created",

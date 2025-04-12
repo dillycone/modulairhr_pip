@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useTranscriptFlow } from '../_context/transcript-flow-context';
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Search, Calendar, Clock, FileText, User, ExternalLink } from "lucide-react";
@@ -88,13 +89,15 @@ export default function SavedTranscriptsPage() {
     setSearchQuery(e.target.value);
   };
 
+  const { dispatch } = useTranscriptFlow();
+
   const handleSelectTranscript = (transcript: Transcript) => {
-    // Store transcript in session storage
-    sessionStorage.setItem('uploadedTranscript', transcript.content);
-    sessionStorage.setItem('transcriptTitle', transcript.title);
+    // Store transcript in context
+    dispatch({ type: 'SET_TRANSCRIPT', payload: transcript.content });
+    dispatch({ type: 'SET_TITLE', payload: transcript.title });
     
     // Navigate to edit page
-    router.push('/dashboard/create-pip/transcript/edit');
+    router.push('/create-pip/transcript/edit');
   };
 
   const filteredTranscripts = transcripts.filter(transcript =>
@@ -110,11 +113,11 @@ export default function SavedTranscriptsPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard/create-pip">Create PIP</BreadcrumbLink>
+            <BreadcrumbLink href="/create-pip">Create PIP</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard/create-pip/transcript-source">Transcript Source</BreadcrumbLink>
+            <BreadcrumbLink href="/create-pip/transcript-source">Transcript Source</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

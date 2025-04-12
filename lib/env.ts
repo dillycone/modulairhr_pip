@@ -16,6 +16,9 @@ const envSchema = z.object({
   // Upstash Redis - required server-side only
   UPSTASH_REDIS_REST_URL: z.string().url(),
   UPSTASH_REDIS_REST_TOKEN: z.string().min(1),
+  
+  // Development mode controls - optional
+  NEXT_PUBLIC_DEV_BYPASS_AUTH: z.enum(['true', 'false']).optional().default('false'),
 });
 
 // Validate environment variables at startup
@@ -28,6 +31,7 @@ function validateEnv() {
       GEMINI_MODEL: process.env.GEMINI_MODEL,
       UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
       UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
+      NEXT_PUBLIC_DEV_BYPASS_AUTH: process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -41,4 +45,19 @@ function validateEnv() {
 }
 
 // Validate and export typed environment variables
-export const env = validateEnv(); 
+export const env = validateEnv();
+
+/**
+ * Centralized control for development bypasses
+ * Ensure all dev mode bypasses use this function rather than checking NODE_ENV directly
+ * This makes it easier to test production-like behavior in development
+ */
+export function shouldBypassAuth(): boolean {
+  // Only allow bypasses in development mode, never in production
+  if (process.env.NODE_ENV !== 'development') {
+    return false;
+  }
+  
+  // Check if bypasses are explicitly disabled via environment variable
+  return env.NEXT_PUBLIC_DEV_BYPASS_AUTH !== 'false';
+}

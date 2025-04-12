@@ -1,6 +1,7 @@
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse, type NextRequest } from 'next/server';
 import { userHasRole } from '@/lib/utils/get-user-role';
+import { shouldBypassAuth } from '@/lib/env';
 
 // Define protected routes that require *any* authenticated user
 const PROTECTED_ROUTES = [
@@ -30,9 +31,9 @@ export async function middleware(req: NextRequest) {
 
   console.log(`Middleware processing: ${pathname}`);
 
-  // Skip auth checks in development environment
-  if (process.env.NODE_ENV === 'development') {
-    console.log('Dev environment: bypassing auth checks for development');
+  // Skip auth checks in development environment if bypasses are enabled
+  if (shouldBypassAuth()) {
+    console.log('Dev environment: bypassing auth checks due to NEXT_PUBLIC_DEV_BYPASS_AUTH');
     return response;
   }
 

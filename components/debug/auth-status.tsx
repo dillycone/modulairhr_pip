@@ -35,14 +35,11 @@ export default function AuthDebugger() {
     }
   };
 
-  const isAdmin = user?.app_metadata?.role === 'admin' || 
-    (Array.isArray(user?.app_metadata?.roles) && user?.app_metadata?.roles.includes('admin'));
-
   return (
     <Card className="w-full max-w-3xl mx-auto my-4">
       <CardHeader>
         <CardTitle>Auth Debugger</CardTitle>
-        <CardDescription>Check your authentication and admin role status</CardDescription>
+        <CardDescription>Check your authentication status</CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -54,7 +51,7 @@ export default function AuthDebugger() {
               <div className="bg-slate-100 p-3 rounded-md overflow-x-auto">
                 <p><strong>User ID:</strong> {user.id}</p>
                 <p><strong>Email:</strong> {user.email}</p>
-                <p><strong>Role:</strong> {isAdmin ? 'Admin' : 'Regular User'}</p>
+                <p><strong>Status:</strong> Authenticated</p>
                 <p><strong>App Metadata:</strong> {JSON.stringify(user.app_metadata, null, 2)}</p>
               </div>
             ) : (

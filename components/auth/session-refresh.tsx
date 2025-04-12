@@ -25,11 +25,18 @@ export default function SessionRefreshButton() {
         setTimeout(() => window.location.reload(), 1000);
       } else {
         setStatus('error');
-        setMessage(data.message || 'Failed to refresh session');
+        // Display more specific error messages
+        if (data.needsLogin) {
+          setMessage('Your session has expired. Please log in again.');
+        } else if (data.error) {
+          setMessage(`${data.message}: ${data.error}`);
+        } else {
+          setMessage(data.message || 'Failed to refresh session');
+        }
       }
     } catch (err: any) {
       setStatus('error');
-      setMessage(err.message || 'An error occurred');
+      setMessage('Network error. Please check your connection and try again.');
     } finally {
       setIsRefreshing(false);
     }

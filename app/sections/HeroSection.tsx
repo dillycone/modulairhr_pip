@@ -38,7 +38,7 @@ export default function HeroSection() {
             <div className="relative w-full max-w-[600px] aspect-video rounded-2xl overflow-hidden shadow-2xl transform hover:scale-[1.02] transition-transform duration-300">
               <div className="absolute inset-0 bg-gradient-to-br from-indigo-600/10 to-blue-500/10 z-10"></div>
               <Image
-                src="/placeholder.svg?height=600&width=1000"
+                src="/placeholder.svg"
                 alt="PIP Assistant Dashboard Preview"
                 className="object-cover w-full h-full"
                 width={1000}

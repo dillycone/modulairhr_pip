@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { LoginForm } from '@/components/auth/login-form';
 import { useAuth } from '@/hooks/useAuth';
 import { safeRedirect } from '@/lib/auth-navigation';
+import { Skeleton } from '@/components/ui/skeleton';
 
 function LoginFormWrapper() {
   const router = useRouter();
@@ -19,9 +20,12 @@ function LoginFormWrapper() {
     }
   }, [user, loading, router, validRedirectPath]);
 
+  // This callback is for optional post-login actions (logging, analytics)
+  // The actual redirect happens via the useEffect hook above
+  // which detects the user state change automatically
   const handleLoginSuccess = () => { 
-    // Success is handled by useEffect watching for user state change
     console.log('Login form reported success');
+    // Add any additional post-login actions here (analytics, etc.)
   }
 
   return (
@@ -44,8 +48,20 @@ function LoginFormWrapper() {
 
 function LoginLoading() {
   return (
-    <div className="flex min-h-screen items-center justify-center">
-      <div>Loading...</div>
+    <div className="flex min-h-screen items-center justify-center px-4 py-12">
+      <div className="rounded-lg border bg-card text-card-foreground shadow-sm w-full max-w-md">
+        <div className="flex flex-col space-y-1.5 p-6">
+          <div className="mx-auto">
+            <Skeleton className="h-8 w-32 mb-2" />
+          </div>
+          <Skeleton className="h-4 w-64 mx-auto" />
+        </div>
+        <div className="p-6 pt-0">
+          <Skeleton className="h-10 w-full mb-3" />
+          <Skeleton className="h-10 w-full mb-6" />
+          <Skeleton className="h-10 w-full" />
+        </div>
+      </div>
     </div>
   );
 }

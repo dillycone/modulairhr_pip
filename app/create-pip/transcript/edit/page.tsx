@@ -3,9 +3,9 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranscriptFlow } from '../_context/transcript-flow-context';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Save, Clock, Tag } from "lucide-react";
+import { ArrowLeft, ChevronRight, Clock, Users, PencilLine, AlignLeft } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
@@ -28,20 +28,13 @@ export default function EditTranscriptPage() {
 
   // Estimate duration based on word count (assuming average speaking pace)
   const estimatedDuration = useMemo(() => {
-    if (!transcript) return '--:--';
+    if (!transcript) return '1m';
     
     // Average speaking pace is around 150 words per minute
     const wordCount = transcript.split(/\s+/).filter(Boolean).length;
     const durationInMinutes = Math.max(1, Math.ceil(wordCount / 150));
     
-    const hours = Math.floor(durationInMinutes / 60);
-    const minutes = durationInMinutes % 60;
-    
-    if (hours > 0) {
-      return `${hours}h ${minutes}m`;
-    } else {
-      return `${minutes}m`;
-    }
+    return `${durationInMinutes}m`;
   }, [transcript]);
 
   // Format the transcript display with styled timestamps
@@ -51,8 +44,24 @@ export default function EditTranscriptPage() {
     // Add styling to timestamps (format: MM:SS)
     return transcript.replace(
       /\b(\d{1,2}):(\d{2})\b/g, 
-      '<span class="text-indigo-600 font-semibold">$1:$2</span>'
+      '<span class="text-blue-600 font-medium">$1:$2</span>'
     );
+  }, [transcript]);
+
+  // Process the transcript for display - ensure timestamps are properly formatted
+  const processedTranscript = useMemo(() => {
+    if (!transcript) return '';
+    
+    // Ensure each line starts with a timestamp if missing
+    const lines = transcript.split('\n');
+    return lines.map((line, i) => {
+      // If line already has a timestamp (00:00 format), return as is
+      if (line.match(/^\d{2}:\d{2}/)) return line;
+      
+      // Add dummy timestamp to lines without one
+      const timestamp = `${String(Math.floor(i/2)).padStart(2, '0')}:${String((i % 60) * 5).padStart(2, '0')}`;
+      return `${timestamp} ${line}`;
+    }).join('\n');
   }, [transcript]);
 
   useEffect(() => {
@@ -82,121 +91,147 @@ export default function EditTranscriptPage() {
 
   if (isLoading) {
     return (
-      <div className="max-w-4xl mx-auto p-8 flex justify-center items-center h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+      <div className="flex h-[calc(100vh-4rem)] items-center justify-center">
+        <div className="flex flex-col items-center gap-2">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+          <p className="text-sm text-gray-500">Loading transcript...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
-      <Breadcrumb className="mb-4">
+    <div className="max-w-4xl mx-auto py-8 px-4">
+      <Breadcrumb className="mb-6 text-sm text-gray-500">
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard/create-pip">Create PIP</BreadcrumbLink>
+            <BreadcrumbLink href="/create-pip">Create PIP</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink href="/dashboard/create-pip/transcript-source">Transcript Source</BreadcrumbLink>
+            <BreadcrumbLink href="/create-pip/transcript-source">Transcript</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbPage>Edit Transcript</BreadcrumbPage>
+            <BreadcrumbPage>Edit</BreadcrumbPage>
           </BreadcrumbItem>
         </BreadcrumbList>
       </Breadcrumb>
       
-      <div className="flex items-center mb-8">
+      <div className="flex items-center gap-3 mb-8">
         <Button 
           variant="ghost" 
-          className="mr-4 p-0 h-auto"
+          size="sm"
+          className="p-0 h-9 w-9 rounded-full bg-white border border-gray-200 hover:bg-gray-50 shadow-sm"
           onClick={handleBack}
         >
-          <ArrowLeft className="h-5 w-5 text-slate-500" />
+          <ArrowLeft className="h-4 w-4 text-gray-700" />
         </Button>
-        <div>
-          <h1 className="text-3xl font-bold">Edit Transcript</h1>
-          <p className="text-muted-foreground mt-2">Review and edit the generated transcript</p>
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold text-gray-900">Edit Transcript</h1>
+          <p className="text-sm text-gray-500">Refine your podcast transcript before analysis</p>
         </div>
       </div>
 
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-xl">Transcript Details</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1" htmlFor="title">
-              Transcript Title
-            </label>
-            <Input
-              id="title"
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              className="w-full"
-            />
+      <Card className="mb-6 shadow-lg border border-gray-100 rounded-xl overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 py-4 px-6 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <PencilLine className="h-5 w-5 text-blue-600" />
+            <CardTitle className="text-lg font-semibold text-gray-900">Transcript Details</CardTitle>
           </div>
-          
-          <div className="flex flex-wrap gap-4">
-            <div className="flex items-center text-sm text-gray-500">
-              <Clock className="h-4 w-4 mr-1" />
-              <span>Duration: {estimatedDuration}</span>
+        </CardHeader>
+        <CardContent className="p-6">
+          <div className="space-y-4">
+            <div>
+              <label className="text-sm font-medium mb-1.5 block" htmlFor="title">
+                Transcript Title
+              </label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full"
+                placeholder="Enter a descriptive title for this transcript"
+              />
             </div>
-            <div className="flex items-center text-sm text-gray-500">
-              <Tag className="h-4 w-4 mr-1" />
-              <span>Speakers: {state.speakers?.length || 0}</span>
+            
+            <div className="flex gap-8 mt-4">
+              <div className="flex items-center">
+                <Clock className="h-4 w-4 text-gray-500 mr-2" />
+                <span className="text-sm font-medium">{estimatedDuration}</span>
+                <span className="text-sm text-gray-500 ml-2">Duration</span>
+              </div>
+              <div className="flex items-center">
+                <Users className="h-4 w-4 text-gray-500 mr-2" />
+                <span className="text-sm font-medium">{state.speakers?.length || 2}</span>
+                <span className="text-sm text-gray-500 ml-2">Speakers</span>
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      <Card className="mb-8">
-        <CardHeader>
-          <CardTitle className="text-xl">Edit Transcript</CardTitle>
+      <Card className="shadow-lg border border-gray-100 rounded-xl overflow-hidden">
+        <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50 py-4 px-6 border-b border-gray-200">
+          <div className="flex items-center gap-3">
+            <AlignLeft className="h-5 w-5 text-blue-600" />
+            <div>
+              <CardTitle className="text-lg font-semibold text-gray-900">Transcript Editor</CardTitle>
+              <CardDescription className="text-sm text-gray-600 mt-1">
+                Edit text with live timestamp preview
+              </CardDescription>
+            </div>
+          </div>
         </CardHeader>
-        <CardContent>
+        
+        <CardContent className="p-6 space-y-6">
           <Textarea
             value={transcript}
             onChange={(e) => setTranscript(e.target.value)}
-            className="min-h-[300px] font-mono text-sm mb-4"
-            placeholder="Loading transcript... If this persists, try uploading again."
+            className="min-h-[400px] font-mono text-sm leading-relaxed border-gray-200 hover:border-gray-300 
+              focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-colors"
+            placeholder="Paste or edit your transcript here..."
           />
           
           {transcript && (
-            <div className="mt-4 border rounded-md p-4 bg-gray-50">
-              <h3 className="text-sm font-medium mb-2 text-gray-700">Preview with timestamps:</h3>
-              <div 
-                className="font-mono text-sm whitespace-pre-wrap"
-                dangerouslySetInnerHTML={{ __html: formattedTranscript }}
-              />
+            <div className="mt-5 space-y-3">
+              <h3 className="text-sm font-semibold text-gray-700">Formatted Preview</h3>
+              <div className="rounded-lg border border-gray-200 bg-white p-4 max-h-[200px] overflow-y-auto">
+                <div 
+                  className="font-mono text-sm whitespace-pre-wrap leading-relaxed text-gray-700"
+                  dangerouslySetInnerHTML={{ __html: formattedTranscript }}
+                />
+              </div>
             </div>
           )}
         </CardContent>
-        <CardFooter className="flex justify-end space-x-4">
+
+        <CardFooter className="flex justify-end gap-4 py-5 px-6 bg-gray-50 border-t border-gray-200">
           <Button 
             variant="outline" 
             onClick={handleBack}
+            className="h-10 px-6 border-gray-300 text-gray-700 hover:bg-gray-50/80"
           >
             Cancel
           </Button>
           <Button
             onClick={handleSave}
             disabled={isSaving || transcript.trim() === ''}
-            className="bg-indigo-600 hover:bg-indigo-700 text-white"
+            className="h-10 px-6 bg-blue-600 hover:bg-blue-700 text-white transition-colors"
           >
             {isSaving ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Saving...
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                <span>Saving...</span>
               </>
             ) : (
               <>
-                Save and Continue
-                <Save className="ml-2 h-4 w-4" />
+                <span>Save and Continue</span>
+                <ChevronRight className="h-4 w-4 ml-2" />
               </>
             )}
           </Button>

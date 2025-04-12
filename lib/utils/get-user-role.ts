@@ -1,41 +1,52 @@
 import type { SupabaseClient, User } from '@supabase/supabase-js';
 import { Database } from '@/types/supabase';
+import { shouldBypassAuth } from '@/lib/env';
+import { UserRole, isValidUserRole } from '@/types/roles';
+import { getUserRoles, getPrimaryRole } from './permissions';
 
 /**
- * Returns the highest priority role from a roles array
- * @param roles Array of user roles
- * @returns The highest priority role or default 'user' role
+ * @deprecated Use getPrimaryRole from ./permissions.ts instead
  */
 export function getPrimaryRole(roles: string[] | undefined): string {
-  if (!roles || roles.length === 0) return 'user';
+  // For backward compatibility, handle undefined roles
+  if (!roles || roles.length === 0) {
+    return UserRole.USER;
+  }
   
-  // Order of precedence: admin > hr_admin > manager > employee > user
-  if (roles.includes('admin')) return 'admin';
-  if (roles.includes('hr_admin')) return 'hr_admin';
-  if (roles.includes('manager')) return 'manager';
-  if (roles.includes('employee')) return 'employee';
+  // Filter to only valid roles
+  const validRoles = roles.filter(isValidUserRole);
   
-  // Return the first role if none of the above match
-  return roles[0];
+  // Priority order: ADMIN > MANAGER > TEMPLATE_EDITOR > USER
+  if (validRoles.includes(UserRole.ADMIN)) return UserRole.ADMIN;
+  if (validRoles.includes(UserRole.MANAGER)) return UserRole.MANAGER;
+  if (validRoles.includes(UserRole.TEMPLATE_EDITOR)) return UserRole.TEMPLATE_EDITOR;
+  
+  return UserRole.USER;
 }
 
 /**
- * Checks if a user has a specific role
- * @param user Supabase user object
- * @param role Role to check for
- * @returns Boolean indicating if user has the role
+ * @deprecated Use userHasRole from ./permissions.ts instead
  */
 export function userHasRole(user: User | null, role: string): boolean {
+  // In development mode, can bypass auth checks
+  if (shouldBypassAuth()) {
+    return true;
+  }
+  
   if (!user) return false;
   
-  const roles = user.app_metadata?.roles as string[] | undefined;
-  return !!roles && roles.includes(role);
+  // Check if the role is a valid UserRole
+  if (!isValidUserRole(role)) {
+    return false;
+  }
+  
+  // Get the user roles and check if the required role is included
+  const roles = user.app_metadata?.roles || [];
+  return roles.includes(role);
 }
 
 /**
- * Fetches the roles of the currently authenticated user.
- * @param supabase Supabase client instance
- * @returns The user's roles as a string array, or empty array if not found
+ * @deprecated Use getUserRoles from ./permissions.ts instead
  */
 export async function getUserRoles(
   supabase: SupabaseClient<Database>
@@ -47,78 +58,30 @@ export async function getUserRoles(
     return [];
   }
 
-  // For development mode, provide admin role for testing
-  if (process.env.NODE_ENV === 'development') {
-    console.log("DEV MODE: Using fallback admin role");
-    return ['admin']; 
+  // For development mode
+  if (shouldBypassAuth()) {
+    return Object.values(UserRole);
   }
 
-  // Primary source: app_metadata.roles array
-  if (Array.isArray(user.app_metadata?.roles) && user.app_metadata.roles.length > 0) {
-    return user.app_metadata.roles;
-  }
-  
-  // Fallback: app_metadata.role string (converted to array)
-  if (user.app_metadata?.role && typeof user.app_metadata.role === 'string') {
-    return [user.app_metadata.role];
-  }
-
-  // Additional fallbacks for backward compatibility - convert all to array format
-  const fallbackRoles: string[] = [];
-  
-  // Check user_metadata.role
-  if (user.user_metadata?.role && typeof user.user_metadata.role === 'string') {
-    fallbackRoles.push(user.user_metadata.role);
-  }
-
-  // If we found any roles in fallbacks, return them
-  if (fallbackRoles.length > 0) {
-    console.warn("Using fallback role location. Please migrate roles to app_metadata.roles");
-    return fallbackRoles;
-  }
-
-  // Query database for roles if needed (expensive fallback)
-  try {
-    // Try employee table first
-    const { data: employeeData, error: employeeError } = await supabase
-      .from('employees')
-      .select('role')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!employeeError && employeeData?.role) {
-      console.warn("Using employee table for role. Please migrate roles to app_metadata.roles");
-      return [employeeData.role];
-    }
-
-    // Try user_profiles table
-    const { data: profileData, error: profileError } = await supabase
-      .from('user_profiles')
-      .select('role')
-      .eq('user_id', user.id)
-      .single();
-
-    if (!profileError && profileData?.role) {
-      console.warn("Using user_profiles table for role. Please migrate roles to app_metadata.roles");
-      return [profileData.role];
-    }
-  } catch (err) {
-    console.warn("Error querying database for roles:", err);
-  }
-
-  // Default role
-  console.warn("No roles found, defaulting to 'user' role");
-  return ['user'];
+  // Get roles from user metadata
+  return user.app_metadata?.roles || [UserRole.USER];
 }
 
 /**
- * Fetches the primary role of the currently authenticated user.
- * @param supabase Supabase client instance
- * @returns The user's primary role as a string, or 'user' if not found
+ * @deprecated Use getPrimaryRole from ./permissions.ts instead
  */
 export async function getUserRole(
   supabase: SupabaseClient<Database>
 ): Promise<string> {
-  const roles = await getUserRoles(supabase);
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return '';
+  
+  // For development mode
+  if (shouldBypassAuth()) {
+    return UserRole.ADMIN;
+  }
+  
+  // Get roles and determine primary role
+  const roles = user.app_metadata?.roles || [];
   return getPrimaryRole(roles);
 }

@@ -13,9 +13,9 @@ function SignupContent() {
   const redirectParam = searchParams.get('redirect');
   const validRedirectPath = safeRedirect(redirectParam);
 
-  const handleSignUpSuccess = () => {
-    // After signup, redirect to login with the same redirect parameter
-    router.push(`/auth/login?redirect=${encodeURIComponent(validRedirectPath)}`);
+  const handleSignUpSuccess = (email: string) => {
+    // After signup, redirect to check-email page with the email and redirect parameters
+    router.push(`/auth/check-email?email=${encodeURIComponent(email)}&redirect=${encodeURIComponent(validRedirectPath)}`);
   };
 
   return (

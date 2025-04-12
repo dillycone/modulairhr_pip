@@ -2,7 +2,7 @@
   Consolidated PasswordForm component:
   - Accepts `mode` prop: ('reset' | 'update')
   - Renders either the reset or update password fields
-  - Uses unified error handling approach with `useAuth()`
+  - Uses unified error handling approach with password reset hooks
 */
 
 import { useState } from "react";
@@ -13,7 +13,7 @@ import {
   resetPasswordSchema,
   updatePasswordSchema,
 } from "../../lib/validations/auth";
-import { useAuth } from "../../hooks/useAuth";
+import { usePasswordReset } from "../../hooks/usePasswordReset";
 import { Input } from "../ui/input";
 import { Button } from "../ui/button";
 import {
@@ -38,7 +38,8 @@ interface PasswordFormProps {
 
 export function PasswordForm({ mode, onSuccess }: PasswordFormProps) {
   const [isLoading, setIsLoading] = useState(false);
-  const { resetPassword, updatePassword, error } = useAuth();
+  const [tokenError, setTokenError] = useState<string | null>(null);
+  const { resetPassword, updatePassword, error } = usePasswordReset();
 
   const isReset = mode === "reset";
   const schema = isReset ? resetPasswordSchema : updatePasswordSchema;
@@ -48,6 +49,9 @@ export function PasswordForm({ mode, onSuccess }: PasswordFormProps) {
       ? { email: "" }
       : { password: "", confirmPassword: "" },
   });
+  
+  // Token validation happens during the updateUser API call
+  // This is more reliable than checking for hash presence
 
   async function onSubmit(values: ResetSchema | UpdateSchema) {
     setIsLoading(true);
@@ -62,6 +66,13 @@ export function PasswordForm({ mode, onSuccess }: PasswordFormProps) {
       } else if (!isReset && 'password' in values) {
         const { error: uErr } = await updatePassword(values.password);
         if (uErr) {
+          // If we get an error here related to the token, it's an invalid/expired token
+          if (uErr.message.toLowerCase().includes('token') || 
+              uErr.message.toLowerCase().includes('expired') ||
+              uErr.message.toLowerCase().includes('invalid')) {
+            setTokenError("Invalid or expired password reset link. Please request a new password reset.");
+            return;
+          }
           toast({ title: "Error", description: uErr.message, variant: "destructive" });
           return;
         }
@@ -76,6 +87,20 @@ export function PasswordForm({ mode, onSuccess }: PasswordFormProps) {
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+        {tokenError && (
+          <div className="p-3 text-sm rounded-md bg-red-50 text-red-600 border border-red-200 mb-4">
+            {tokenError}
+            <div className="mt-2">
+              <button
+                type="button"
+                onClick={() => window.location.href = '/auth/reset-password'}
+                className="text-red-600 underline text-sm"
+              >
+                Request new password reset
+              </button>
+            </div>
+          </div>
+        )}
         {isReset ? (
           <FormField
             control={form.control}

@@ -64,9 +64,6 @@ export default function DashboardSidebar() {
   const userName = user?.user_metadata?.name || userEmail || "User";
   const userInitial = userEmail ? userEmail.charAt(0).toUpperCase() : "U";
 
-  // Determine if the user is an admin (check potential locations for role)
-  const isAdmin = user?.app_metadata?.role === 'admin' || user?.role === 'admin';
-
   return (
     <div className="w-64 h-screen bg-white border-r border-slate-200 flex flex-col">
       {/* User Profile Section */}
@@ -76,7 +73,7 @@ export default function DashboardSidebar() {
         </Avatar>
         <div className="flex flex-col">
           <span className="font-medium text-sm">{userName}</span>
-          <span className="text-xs text-slate-500">{user?.app_metadata?.role || user?.role || 'User'}</span>
+          <span className="text-xs text-slate-500">User</span>
         </div>
       </div>
       
