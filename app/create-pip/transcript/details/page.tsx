@@ -3,10 +3,12 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranscriptFlow } from '../_context/transcript-flow-context';
+import { useAuth } from '@/hooks/useAuth';
 
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
+import { pipSchema, PipFormData } from '@/types/pip';
+
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar as CalendarIcon, Save, Loader2 } from "lucide-react";
 import {
@@ -37,44 +39,34 @@ import {
 } from "@/components/ui/popover";
 import { useToast } from "@/components/ui/use-toast";
 
-// Define the Zod schema for validation
-const pipSchema = z.object({
-  employeeName: z.string().min(1, { message: "Employee name is required" }),
-  employeePosition: z.string().min(1, { message: "Employee position is required" }),
-  manager: z.string().min(1, { message: "Manager name is required" }),
-  department: z.string().min(1, { message: "Department is required" }),
-  startDate: z.date({ required_error: "Start date is required" }),
-  reviewDate: z.date({ required_error: "Review date is required" }),
-  performanceIssues: z.string().min(1, { message: "Performance issues description is required" }),
-  improvementGoals: z.string().min(1, { message: "Improvement goals description is required" }),
-  resourcesSupport: z.string().min(1, { message: "Resources/support description is required" }),
-  consequences: z.string().min(1, { message: "Consequences description is required" }),
-}).refine(data => !data.reviewDate || !data.startDate || data.reviewDate > data.startDate, {
+// Use the unified pipSchema but add transcript-specific refinements
+const transcriptPipSchema = pipSchema.refine(data => !data.review_date || !data.start_date || data.review_date > data.start_date, {
   message: "Review date must be after the start date",
-  path: ["reviewDate"], // Attach error to reviewDate field
+  path: ["review_date"], // Attach error to review_date field
 });
 
-type FormData = z.infer<typeof pipSchema>;
+type FormData = PipFormData;
 
 export default function PIPDetailsFromTranscript() {
   const router = useRouter();
   const { state } = useTranscriptFlow();
   const [isSaving, setIsSaving] = useState(false);
   const { toast } = useToast();
+  const { user } = useAuth();
 
   // Initialize react-hook-form
   const form = useForm<FormData>({
-    resolver: zodResolver(pipSchema),
+    resolver: zodResolver(transcriptPipSchema),
     defaultValues: {
-      employeeName: '',
-      employeePosition: '',
-      manager: '',
+      employee_name: '',
+      position: '',
+      manager_name: '',
       department: '',
-      startDate: undefined,
-      reviewDate: undefined,
-      performanceIssues: '',
-      improvementGoals: '',
-      resourcesSupport: '',
+      start_date: undefined,
+      review_date: undefined,
+      performance_issues: '',
+      improvement_goals: '',
+      resources_support: '',
       consequences: '',
     },
   });
@@ -83,7 +75,7 @@ export default function PIPDetailsFromTranscript() {
   useEffect(() => {
     // Pre-populate fields with data from context if available
     if (state.summary) {
-      setValue('performanceIssues', state.summary);
+      setValue('performance_issues', state.summary);
     }
   }, [state.summary, setValue]);
 
@@ -95,6 +87,17 @@ export default function PIPDetailsFromTranscript() {
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     setIsSaving(true);
     
+    // Ensure user is available before submitting
+    if (!user) {
+      toast({
+        title: "Authentication Error",
+        description: "You must be logged in to create a PIP.",
+        variant: "destructive",
+      });
+      setIsSaving(false);
+      return; // Prevent submission
+    }
+    
     try {
       const response = await fetch('/api/pips', {
         method: 'POST',
@@ -102,18 +105,18 @@ export default function PIPDetailsFromTranscript() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          employee_name: data.employeeName,
-          position: data.employeePosition,
-          manager_name: data.manager,
+          employee_name: data.employee_name,
+          position: data.position,
+          manager_name: data.manager_name,
           department: data.department,
-          start_date: data.startDate.toISOString().slice(0, 10),
-          review_date: data.reviewDate.toISOString().slice(0, 10),
-          performance_issues: data.performanceIssues,
-          improvement_goals: data.improvementGoals,
-          resources_support: data.resourcesSupport,
+          start_date: data.start_date.toISOString().slice(0, 10),
+          review_date: data.review_date.toISOString().slice(0, 10),
+          performance_issues: data.performance_issues,
+          improvement_goals: data.improvement_goals,
+          resources_support: data.resources_support,
           consequences: data.consequences,
           status: 'draft',
-          created_by: 'user-id', // This should be replaced with actual user ID
+          created_by: user.id, // Use the actual user ID instead of hardcoded value
           // Include transcript info if available from context
           transcript_data: state.transcript || null,
           transcript_summary: state.summary || null,
@@ -127,7 +130,7 @@ export default function PIPDetailsFromTranscript() {
 
       toast({
         title: "PIP Created",
-        description: `Successfully created PIP for ${data.employeeName}.`,
+        description: `Successfully created PIP for ${data.employee_name}.`,
       });
       
       router.push('/dashboard');
@@ -195,31 +198,31 @@ export default function PIPDetailsFromTranscript() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
-                  <Label htmlFor="employeeName">Employee Name</Label>
+                  <Label htmlFor="employee_name">Employee Name</Label>
                   <Input
-                    id="employeeName"
+                    id="employee_name"
                     placeholder="Enter employee name"
-                    {...register("employeeName")}
+                    {...register("employee_name")}
                   />
-                  {errors.employeeName && <p className="text-sm font-medium text-destructive mt-1">{errors.employeeName.message}</p>}
+                  {errors.employee_name && <p className="text-sm font-medium text-destructive mt-1">{errors.employee_name.message}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="employeePosition">Position</Label>
+                  <Label htmlFor="position">Position</Label>
                   <Input
-                    id="employeePosition"
+                    id="position"
                     placeholder="Enter employee position"
-                    {...register("employeePosition")}
+                    {...register("position")}
                   />
-                  {errors.employeePosition && <p className="text-sm font-medium text-destructive mt-1">{errors.employeePosition.message}</p>}
+                  {errors.position && <p className="text-sm font-medium text-destructive mt-1">{errors.position.message}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="manager">Manager</Label>
+                  <Label htmlFor="manager_name">Manager</Label>
                   <Input
-                    id="manager"
+                    id="manager_name"
                     placeholder="Enter manager name"
-                    {...register("manager")}
+                    {...register("manager_name")}
                   />
-                  {errors.manager && <p className="text-sm font-medium text-destructive mt-1">{errors.manager.message}</p>}
+                  {errors.manager_name && <p className="text-sm font-medium text-destructive mt-1">{errors.manager_name.message}</p>}
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="department">Department</Label>
@@ -249,15 +252,15 @@ export default function PIPDetailsFromTranscript() {
                   {errors.department && <p className="text-sm font-medium text-destructive mt-1">{errors.department.message}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="startDate">Start Date</Label>
+                  <Label htmlFor="start_date">Start Date</Label>
                   <Controller
-                    name="startDate"
+                    name="start_date"
                     control={control}
                     render={({ field }) => (
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
-                            id="startDate"
+                            id="start_date"
                             variant={"outline"}
                             className={`w-full justify-start text-left font-normal ${!field.value && "text-muted-foreground"}`}
                           >
@@ -276,18 +279,18 @@ export default function PIPDetailsFromTranscript() {
                       </Popover>
                     )}
                   />
-                  {errors.startDate && <p className="text-sm font-medium text-destructive mt-1">{errors.startDate.message}</p>}
+                  {errors.start_date && <p className="text-sm font-medium text-destructive mt-1">{errors.start_date.message}</p>}
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="reviewDate">Review Date</Label>
+                  <Label htmlFor="review_date">Review Date</Label>
                   <Controller
-                    name="reviewDate"
+                    name="review_date"
                     control={control}
                     render={({ field }) => (
                       <Popover>
                         <PopoverTrigger asChild>
                           <Button
-                            id="reviewDate"
+                            id="review_date"
                             variant={"outline"}
                             className={`w-full justify-start text-left font-normal ${!field.value && "text-muted-foreground"}`}
                           >
@@ -301,8 +304,8 @@ export default function PIPDetailsFromTranscript() {
                             selected={field.value}
                             onSelect={field.onChange}
                             disabled={(date) => {
-                              const startDate = form.getValues("startDate");
-                              return startDate ? date <= startDate : false;
+                              const start_date = form.getValues("start_date");
+                              return start_date ? date <= start_date : false;
                             }}
                             initialFocus
                           />
@@ -310,7 +313,7 @@ export default function PIPDetailsFromTranscript() {
                       </Popover>
                     )}
                   />
-                  {errors.reviewDate && <p className="text-sm font-medium text-destructive mt-1">{errors.reviewDate.message}</p>}
+                  {errors.review_date && <p className="text-sm font-medium text-destructive mt-1">{errors.review_date.message}</p>}
                 </div>
               </div>
             </CardContent>
@@ -326,16 +329,16 @@ export default function PIPDetailsFromTranscript() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Label htmlFor="performanceIssues">
+                <Label htmlFor="performance_issues">
                   Describe the specific performance issues or concerns
                 </Label>
                 <Textarea
-                  id="performanceIssues"
+                  id="performance_issues"
                   placeholder="Clearly outline the performance areas needing improvement..."
-                  {...register("performanceIssues")}
+                  {...register("performance_issues")}
                   className="min-h-[100px]"
                 />
-                {errors.performanceIssues && <p className="text-sm font-medium text-destructive mt-1">{errors.performanceIssues.message}</p>}
+                {errors.performance_issues && <p className="text-sm font-medium text-destructive mt-1">{errors.performance_issues.message}</p>}
               </div>
             </CardContent>
           </Card>
@@ -350,16 +353,16 @@ export default function PIPDetailsFromTranscript() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Label htmlFor="improvementGoals">
+                <Label htmlFor="improvement_goals">
                   Set clear, measurable, achievable, relevant, and time-bound (SMART) goals
                 </Label>
                 <Textarea
-                  id="improvementGoals"
+                  id="improvement_goals"
                   placeholder="Define specific goals the employee needs to achieve..."
-                  {...register("improvementGoals")}
+                  {...register("improvement_goals")}
                   className="min-h-[100px]"
                 />
-                {errors.improvementGoals && <p className="text-sm font-medium text-destructive mt-1">{errors.improvementGoals.message}</p>}
+                {errors.improvement_goals && <p className="text-sm font-medium text-destructive mt-1">{errors.improvement_goals.message}</p>}
               </div>
             </CardContent>
           </Card>
@@ -374,16 +377,16 @@ export default function PIPDetailsFromTranscript() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                <Label htmlFor="resourcesSupport">
+                <Label htmlFor="resources_support">
                   Outline the resources, training, or support that will be provided
                 </Label>
                 <Textarea
-                  id="resourcesSupport"
+                  id="resources_support"
                   placeholder="List any training, coaching, tools, or other support..."
-                  {...register("resourcesSupport")}
+                  {...register("resources_support")}
                   className="min-h-[100px]"
                 />
-                {errors.resourcesSupport && <p className="text-sm font-medium text-destructive mt-1">{errors.resourcesSupport.message}</p>}
+                {errors.resources_support && <p className="text-sm font-medium text-destructive mt-1">{errors.resources_support.message}</p>}
               </div>
             </CardContent>
           </Card>

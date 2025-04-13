@@ -32,53 +32,30 @@ export default function SavedTranscriptsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [transcripts, setTranscripts] = useState<Transcript[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Simulate loading transcripts from API
-    const loadTranscripts = async () => {
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Mock data
-      const mockTranscripts: Transcript[] = [
-        {
-          id: '1',
-          title: 'Performance Review - John Doe',
-          date: '2025-03-15',
-          duration: '00:45:30',
-          speakers: 2,
-          content: 'This is a transcript of a performance review meeting with John Doe.'
-        },
-        {
-          id: '2',
-          title: 'Coaching Session - Jane Smith',
-          date: '2025-03-10',
-          duration: '00:32:15',
-          speakers: 3,
-          content: 'This is a transcript of a coaching session with Jane Smith.'
-        },
-        {
-          id: '3',
-          title: 'Improvement Discussion - Alex Johnson',
-          date: '2025-03-01',
-          duration: '01:12:45',
-          speakers: 2,
-          content: 'This is a transcript of an improvement discussion with Alex Johnson.'
-        },
-        {
-          id: '4',
-          title: 'Department Meeting - Q1 Review',
-          date: '2025-02-25',
-          duration: '01:30:00',
-          speakers: 5,
-          content: 'This is a transcript of a department meeting reviewing Q1 performance.'
+    // Fetch transcripts from API
+    const fetchTranscripts = async () => {
+      setIsLoading(true);
+      try {
+        const response = await fetch('/api/transcripts');
+        
+        if (!response.ok) {
+          throw new Error(`Error fetching transcripts: ${response.status}`);
         }
-      ];
-      
-      setTranscripts(mockTranscripts);
-      setIsLoading(false);
+        
+        const data = await response.json();
+        setTranscripts(data.transcripts || []);
+      } catch (err) {
+        console.error('Failed to fetch transcripts:', err);
+        setError('Failed to load transcripts. Please try again later.');
+      } finally {
+        setIsLoading(false);
+      }
     };
     
-    loadTranscripts();
+    fetchTranscripts();
   }, []);
 
   const handleBack = () => {
@@ -154,7 +131,13 @@ export default function SavedTranscriptsPage() {
       </div>
 
       <div className="space-y-4">
-        {isLoading ? (
+        {error ? (
+          <div className="text-center py-12 border rounded-lg bg-red-50">
+            <FileText className="h-12 w-12 text-red-400 mx-auto mb-4" />
+            <h3 className="text-lg font-medium text-red-700 mb-1">Error</h3>
+            <p className="text-red-600">{error}</p>
+          </div>
+        ) : isLoading ? (
           // Loading skeletons
           Array.from({ length: 3 }).map((_, index) => (
             <Card key={index} className="hover:shadow-md transition-shadow duration-300">

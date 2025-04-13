@@ -90,10 +90,60 @@ export async function POST(request: Request) {
     // Make sure the created_by matches the current user's ID
     pipData.created_by = user.id;
     
+    // Standardize field names with unified schema regardless of source flow (template or transcript)
+    const standardizedPipData = {
+      ...pipData,
+      // Basic employee fields
+      employee_name: pipData.employee_name || pipData.employeeName,
+      position: pipData.position || pipData.employeePosition,
+      department: pipData.department,
+      manager_name: pipData.manager_name || pipData.manager || pipData.managerName,
+      
+      // Date fields
+      start_date: pipData.start_date || (pipData.startDate ? new Date(pipData.startDate).toISOString().slice(0, 10) : null),
+      end_date: pipData.end_date || (pipData.endDate ? new Date(pipData.endDate).toISOString().slice(0, 10) : null),
+      review_date: pipData.review_date || (pipData.reviewDate ? new Date(pipData.reviewDate).toISOString().slice(0, 10) : null),
+      
+      // Template flow fields
+      objectives: pipData.objectives,
+      improvements_needed: pipData.improvements_needed || pipData.improvementsNeeded,
+      success_metrics: pipData.success_metrics || pipData.successMetrics,
+      generated_content: pipData.generated_content || pipData.generatedContent,
+      
+      // Transcript flow fields
+      performance_issues: pipData.performance_issues || pipData.performanceIssues,
+      improvement_goals: pipData.improvement_goals || pipData.improvementGoals,
+      resources_support: pipData.resources_support || pipData.resourcesSupport,
+      consequences: pipData.consequences,
+      
+      // Transcript data
+      transcript_data: pipData.transcript_data,
+      transcript_summary: pipData.transcript_summary,
+      
+      // Common fields
+      created_by: user.id,
+      status: pipData.status || 'draft',
+    };
+    
+    // Clean up any remaining camelCase duplicates
+    delete standardizedPipData.employeeName;
+    delete standardizedPipData.employeePosition;
+    delete standardizedPipData.managerName;
+    delete standardizedPipData.manager;
+    delete standardizedPipData.startDate;
+    delete standardizedPipData.endDate;
+    delete standardizedPipData.reviewDate;
+    delete standardizedPipData.performanceIssues;
+    delete standardizedPipData.improvementGoals;
+    delete standardizedPipData.resourcesSupport;
+    delete standardizedPipData.improvementsNeeded;
+    delete standardizedPipData.successMetrics;
+    delete standardizedPipData.generatedContent;
+    
     try {
       // Try RPC function first (if available)
       const { data, error } = await supabase.rpc('create_pip', {
-        pip_data: pipData
+        pip_data: standardizedPipData
       });
       
       if (error) {
@@ -108,7 +158,7 @@ export async function POST(request: Request) {
       try {
         const { data, error } = await supabase
           .from('pips')
-          .insert([pipData])
+          .insert([standardizedPipData])
           .select();
         
         if (error) {

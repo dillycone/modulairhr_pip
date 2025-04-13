@@ -4,9 +4,9 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import * as z from "zod";
-import { createClient } from '../../../../lib/supabase/client'; // Use the client-side Supabase helper - FIXED with relative path
+import { createClient } from '@/lib/supabase/client'; // Use the client-side Supabase helper
 import { FullPipTemplate } from '@/lib/pip-templates';
+import { pipSchema, PipFormData } from '@/types/pip';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -30,24 +30,14 @@ interface PipFormProps {
     template: FullPipTemplate;
 }
 
-// Define the form schema using Zod based on your public.pips table
-// Adjust validation rules as needed (e.g., .min(3))
-const pipFormSchema = z.object({
-    employee_name: z.string().min(2, { message: "Employee name must be at least 2 characters." }).max(100),
-    // Re-add date fields to schema
-    start_date: z.date({ required_error: "A start date is required." }),
-    end_date: z.date({ required_error: "An end date is required." }),
-    objectives: z.string().min(10, { message: "Objectives must be described (min 10 characters)." }),
-    improvements_needed: z.string().min(10, { message: "Improvements needed must be described (min 10 characters)." }),
-    success_metrics: z.string().min(10, { message: "Success metrics must be described (min 10 characters)." }),
-    // status: z.string().optional(), // Status defaults to 'draft' in DB, no need in form usually
-    // created_by: z.string().uuid(), // This will be the userId prop
-}).refine(data => !data.end_date || !data.start_date || data.end_date >= data.start_date, {
+// We'll use the unified pipSchema from types/pip.ts
+// But we can add a template-specific refine to check dates
+const templatePipSchema = pipSchema.refine(data => !data.end_date || !data.start_date || data.end_date >= data.start_date, {
     message: "End date must be on or after the start date",
     path: ["end_date"], // Attach error to the end_date field
 });
 
-type PipFormValues = z.infer<typeof pipFormSchema>;
+type PipFormValues = z.infer<typeof templatePipSchema>;
 
 export function PipForm({ userId, template }: PipFormProps) {
     const router = useRouter();
@@ -56,7 +46,7 @@ export function PipForm({ userId, template }: PipFormProps) {
     const supabase = createClient();
 
     const form = useForm<PipFormValues>({
-        resolver: zodResolver(pipFormSchema),
+        resolver: zodResolver(templatePipSchema),
         defaultValues: {
             employee_name: "",
             start_date: undefined, // Initialize date fields as undefined
@@ -107,13 +97,17 @@ export function PipForm({ userId, template }: PipFormProps) {
                 body: JSON.stringify({
                     employee_name: data.employee_name,
                     start_date: data.start_date.toISOString().slice(0, 10),
-                    end_date: data.end_date.toISOString().slice(0, 10),
+                    end_date: data.end_date ? data.end_date.toISOString().slice(0, 10) : undefined,
                     objectives: data.objectives,
                     improvements_needed: data.improvements_needed,
                     success_metrics: data.success_metrics,
                     created_by: userId,
                     status: 'draft',
                     generated_content: generatedContent, // Save the substituted content
+                    // Include additional unified schema fields if available
+                    position: data.position,
+                    department: data.department,
+                    manager_name: data.manager_name
                 }),
             });
 

@@ -67,11 +67,7 @@ export default function EditTranscriptPage() {
     dispatch({ type: 'SET_TRANSCRIPT', payload: transcript });
     dispatch({ type: 'SET_TITLE', payload: title });
     
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
     router.push('/create-pip/transcript/summarize');
-    
-    setIsSaving(false);
   };
 
   if (isLoading) {

@@ -23,31 +23,49 @@ export default function SummarizeTranscriptPage() {
   const [isGenerating, setIsGenerating] = useState(false);
   const [summary, setSummary] = useState(state.summary || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleBack = () => {
     router.back();
   };
 
   const handleGenerateSummary = async () => {
-    setIsGenerating(true);
-    
-    // Simulate API call to generate summary
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
-    const generatedSummary = `This meeting focused on outlining the objectives for the new project. 
-    
-Key points discussed:
-- The main deliverable is the new feature implementation
-- Development timeline is set for a six-week cycle
-- Both speakers agreed to focus on key deliverables first
+    if (!state.transcript) {
+      setError('No transcript available to summarize');
+      return;
+    }
 
-Action items:
-1. Create detailed project plan
-2. Schedule follow-up meeting to review progress
-3. Allocate resources for the six-week development cycle`;
+    setIsGenerating(true);
+    setError(null);
     
-    setSummary(generatedSummary);
-    setIsGenerating(false);
+    try {
+      const response = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          transcript: state.transcript
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Error generating summary: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.error) {
+        throw new Error(data.error);
+      }
+      
+      setSummary(data.summary);
+    } catch (err) {
+      console.error('Failed to generate summary:', err);
+      setError('Failed to generate summary. Please try again later.');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleSave = async () => {
@@ -56,10 +74,7 @@ Action items:
     // Update context with summary
     dispatch({ type: 'SET_SUMMARY', payload: summary });
     
-    // Simulate saving
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // Navigate to PIP creation (now moved to transcript path)
+    // Navigate to PIP creation after saving
     router.push('/create-pip/transcript/details');
     
     setIsSaving(false);
@@ -115,7 +130,7 @@ Action items:
             </p>
             <Button
               onClick={handleGenerateSummary}
-              disabled={isGenerating}
+              disabled={isGenerating || !state.transcript}
               className="flex items-center"
               variant="outline"
             >
@@ -129,6 +144,12 @@ Action items:
               )}
             </Button>
           </div>
+          
+          {error && (
+            <div className="p-4 mb-4 text-red-800 bg-red-50 rounded-md border border-red-200">
+              {error}
+            </div>
+          )}
           
           <Textarea
             value={summary}
@@ -156,4 +177,4 @@ Action items:
       </Card>
     </div>
   );
-} 
+}
