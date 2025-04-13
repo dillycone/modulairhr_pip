@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { pipSchema, PipFormData } from '@/types/pip';
+import { createReviewDateAfterStartDateRefinement } from '@/lib/validations/dates';
 
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Calendar as CalendarIcon, Save, Loader2 } from "lucide-react";
@@ -40,10 +41,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 
 // Use the unified pipSchema but add transcript-specific refinements
-const transcriptPipSchema = pipSchema.refine(data => !data.review_date || !data.start_date || data.review_date > data.start_date, {
-  message: "Review date must be after the start date",
-  path: ["review_date"], // Attach error to review_date field
-});
+const transcriptPipSchema = pipSchema.merge(createReviewDateAfterStartDateRefinement());
 
 type FormData = PipFormData;
 

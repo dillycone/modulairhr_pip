@@ -2,8 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { createEndDateAfterStartDateRefinement } from '@/lib/validations/dates';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { z } from "zod";
 import { createClient } from '@/lib/supabase/client'; // Use the client-side Supabase helper
 import { FullPipTemplate } from '@/lib/pip-templates';
 import { pipSchema, PipFormData } from '@/types/pip';
@@ -31,11 +33,8 @@ interface PipFormProps {
 }
 
 // We'll use the unified pipSchema from types/pip.ts
-// But we can add a template-specific refine to check dates
-const templatePipSchema = pipSchema.refine(data => !data.end_date || !data.start_date || data.end_date >= data.start_date, {
-    message: "End date must be on or after the start date",
-    path: ["end_date"], // Attach error to the end_date field
-});
+// But we can add a template-specific refinement to check dates
+const templatePipSchema = pipSchema.merge(createEndDateAfterStartDateRefinement());
 
 type PipFormValues = z.infer<typeof templatePipSchema>;
 

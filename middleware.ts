@@ -5,6 +5,13 @@ import { shouldBypassAuth } from '@/lib/env';
 import { UserRole } from '@/types/roles';
 
 // Define protected routes that require *any* authenticated user
+// Note: Using pathname.startsWith() for route matching means that ALL sub-routes 
+// are automatically protected. For example, the '/create-pip' entry protects:
+// - /create-pip
+// - /create-pip/form
+// - /create-pip/transcript/edit
+// - /create-pip/transcript/summarize
+// - etc.
 const PROTECTED_ROUTES = [
   '/dashboard',
   '/create-pip',
@@ -92,6 +99,8 @@ export async function middleware(req: NextRequest) {
     }
 
     // 1. Handle Authentication for General Protected Routes
+    // This checks if the current pathname starts with any of the protected routes
+    // E.g., "/create-pip/form" starts with "/create-pip", so it's protected
     const isProtectedRoute = PROTECTED_ROUTES.some(route => pathname.startsWith(route));
     if (!session && isProtectedRoute) {
       console.log(`No session for protected route: ${pathname}, redirecting to login`);

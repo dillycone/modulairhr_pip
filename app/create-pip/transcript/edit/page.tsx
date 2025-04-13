@@ -9,6 +9,7 @@ import { ArrowLeft, ChevronRight, Clock, Users, PencilLine, AlignLeft } from "lu
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
+import { sanitizeHtml } from "@/lib/utils";
 import { 
   Breadcrumb, 
   BreadcrumbItem, 
@@ -43,10 +44,13 @@ export default function EditTranscriptPage() {
     
     // Add styling to timestamps (format: MM:SS) - specifically targeting line beginnings
     // which is the format provided by the API transcription
-    return transcript.replace(
+    const formatted = transcript.replace(
       /(^|\n)(\d{1,2}):(\d{2})\b/g, 
       '$1<span class="text-blue-600 font-medium">$2:$3</span>'
     );
+    
+    // Sanitize the HTML to prevent XSS attacks
+    return sanitizeHtml(formatted);
   }, [transcript]);
 
   useEffect(() => {

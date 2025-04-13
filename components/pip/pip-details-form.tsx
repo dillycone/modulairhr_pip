@@ -3,6 +3,7 @@
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import { createReviewDateAfterStartDateCamelRefinement } from '@/lib/validations/dates';
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarIcon, Save } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,10 +37,7 @@ const pipSchema = z.object({
   improvementGoals: z.string().min(1, { message: "Improvement goals description is required" }),
   resourcesSupport: z.string().min(1, { message: "Resources/support description is required" }),
   consequences: z.string().min(1, { message: "Consequences description is required" }),
-}).refine(data => !data.reviewDate || !data.startDate || data.reviewDate > data.startDate, {
-  message: "Review date must be after the start date",
-  path: ["reviewDate"], // Attach error to reviewDate field
-});
+}).merge(createReviewDateAfterStartDateCamelRefinement());
 
 export type PipFormData = z.infer<typeof pipSchema>;
 
