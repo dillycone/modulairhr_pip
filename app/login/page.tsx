@@ -4,12 +4,24 @@ import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Loader } from '@/components/ui';
 
+function clearRateLimitData() {
+  if (typeof window !== 'undefined') {
+    localStorage.removeItem('loginAttempts');
+    localStorage.removeItem('cooldownEnd');
+    localStorage.removeItem('lastAttemptTime');
+    console.log('Login rate limit data cleared');
+  }
+}
+
 function LoginRedirectContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams.get('redirect') || null;
   
   useEffect(() => {
+    // Clear any stored rate limit data
+    clearRateLimitData();
+    
     // Redirect to the auth/login page, preserving any redirect parameter
     const targetPath = redirectTo 
       ? `/auth/login?redirect=${encodeURIComponent(redirectTo)}`

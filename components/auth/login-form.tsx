@@ -46,7 +46,28 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = "/dashboard" }: 
     const storedCooldownEnd = localStorage.getItem('cooldownEnd');
     
     if (storedAttempts) {
-      setLoginAttempts(parseInt(storedAttempts, 10));
+      const attempts = parseInt(storedAttempts, 10);
+      
+      // Check if attempts were from a previous session (over 30 minutes old)
+      const lastAttemptTime = localStorage.getItem('lastAttemptTime');
+      const now = new Date();
+      
+      if (lastAttemptTime) {
+        const timeSinceLastAttempt = now.getTime() - new Date(lastAttemptTime).getTime();
+        const thirtyMinutesInMs = 30 * 60 * 1000;
+        
+        // If it's been more than 30 minutes, reset attempts
+        if (timeSinceLastAttempt > thirtyMinutesInMs) {
+          localStorage.removeItem('loginAttempts');
+          localStorage.removeItem('cooldownEnd');
+          localStorage.removeItem('lastAttemptTime');
+          setLoginAttempts(0);
+          setIsRateLimited(false);
+          return;
+        }
+      }
+      
+      setLoginAttempts(attempts);
     }
     
     if (storedCooldownEnd) {
@@ -58,6 +79,8 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = "/dashboard" }: 
         // Reset if cooldown has expired
         localStorage.removeItem('loginAttempts');
         localStorage.removeItem('cooldownEnd');
+        localStorage.removeItem('lastAttemptTime');
+        setIsRateLimited(false);
       }
     }
   }, []);
@@ -74,6 +97,7 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = "/dashboard" }: 
           setCooldownEnd(null);
           localStorage.removeItem('loginAttempts');
           localStorage.removeItem('cooldownEnd');
+          localStorage.removeItem('lastAttemptTime');
           clearInterval(timer);
         } else {
           setTimeLeft(Math.ceil(timeLeftMs / 1000));
@@ -104,16 +128,19 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = "/dashboard" }: 
     });
     
     if (error) {
+      // Store the time of this attempt
+      localStorage.setItem('lastAttemptTime', new Date().toISOString());
+      
       // Increment login attempts on failure
       const newAttempts = loginAttempts + 1;
       setLoginAttempts(newAttempts);
       localStorage.setItem('loginAttempts', newAttempts.toString());
       
-      // Rate limit after 5 failed attempts
-      if (newAttempts >= 5) {
+      // Rate limit after 8 failed attempts instead of 5
+      if (newAttempts >= 8) {
         const cooldown = new Date();
-        // 5 minute cooldown
-        cooldown.setMinutes(cooldown.getMinutes() + 5);
+        // 3 minute cooldown instead of 5
+        cooldown.setMinutes(cooldown.getMinutes() + 3);
         
         setIsRateLimited(true);
         setCooldownEnd(cooldown);
@@ -124,6 +151,7 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = "/dashboard" }: 
       setLoginAttempts(0);
       localStorage.removeItem('loginAttempts');
       localStorage.removeItem('cooldownEnd');
+      localStorage.removeItem('lastAttemptTime');
       onLoginSuccess();
     }
   }
