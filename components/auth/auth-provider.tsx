@@ -137,13 +137,29 @@ export function AuthProvider({ children }: AuthProviderProps) {
     loading: true,
     error: null,
   });
-
+  
+  // Callbacks to run when auth state is ready
+  const [authStateCallbacks] = useState<Set<() => void>>(new Set());
+  
   // Update auth state in a consistent way
   const updateAuthState = (updates: Partial<AuthState>) => {
     setState(prev => ({
       ...prev,
       ...updates,
     }));
+    
+    // If we're no longer loading and have user/session info, notify any registered callbacks
+    if (updates.loading === false) {
+      // Execute all registered callbacks
+      authStateCallbacks.forEach(callback => {
+        try {
+          callback();
+        } catch (error) {
+          console.error('Error in auth state callback:', error);
+        }
+      });
+    }
+    
     // Add debug logging for auth state updates
     debugLog('Auth state updated:', { 
       ...updates,
@@ -437,6 +453,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   };
 
+  // Register a callback to run when auth state is ready
+  const onAuthStateReady = (callback: () => void) => {
+    // If auth is already ready, call immediately
+    if (!state.loading) {
+      callback();
+      return () => {}; // Return empty cleanup function
+    }
+    
+    // Otherwise, add to callbacks
+    authStateCallbacks.add(callback);
+    debugLog('Registered auth state ready callback');
+    
+    // Return cleanup function to remove the callback
+    return () => {
+      authStateCallbacks.delete(callback);
+      debugLog('Unregistered auth state ready callback');
+    };
+  };
+
   const contextValue = {
     ...state,
     signIn,
@@ -444,6 +479,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signUp,
     resetPassword,
     updatePassword,
+    onAuthStateReady,
   };
 
   return (

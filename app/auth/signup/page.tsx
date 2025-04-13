@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { SignUpForm } from '@/components/auth/signup-form';
 import { Suspense } from 'react';
 import { safeRedirect } from '@/lib/auth-navigation';
+import { Loader } from '@/components/ui';
 
 function SignupContent() {
   const router = useRouter();
@@ -48,7 +49,7 @@ function SignupContent() {
 
 export default function SignupPage() {
   return (
-    <Suspense fallback={<div className="flex min-h-screen items-center justify-center">Loading...</div>}>
+    <Suspense fallback={<Loader variant="simple" />}>
       <SignupContent />
     </Suspense>
   );

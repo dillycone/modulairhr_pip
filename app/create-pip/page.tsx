@@ -15,12 +15,12 @@ import {
 export default function CreatePIP() {
   const router = useRouter();
 
-  const handleManualCreate = () => {
-    router.push('/dashboard/create-pip/manual');
+  const handleTemplateCreate = () => {
+    router.push('/create-pip/select-template');
   };
 
   const handleTranscriptCreate = () => {
-    router.push('/dashboard/create-pip/transcript-source');
+    router.push('/create-pip/transcript-source');
   };
 
   return (
@@ -43,12 +43,12 @@ export default function CreatePIP() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {/* Manual Creation Card */}
+        {/* Template Creation Card */}
         <Card className="hover:shadow-md transition-shadow duration-300 flex flex-col">
           <CardHeader className="text-center">
-            <CardTitle>Create Manually</CardTitle>
+            <CardTitle>Create from Template</CardTitle>
             <CardDescription>
-              Build your PIP from scratch by entering all details manually.
+              Build your PIP by selecting from our library of templates.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex-grow flex items-center justify-center">
@@ -73,8 +73,8 @@ export default function CreatePIP() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button onClick={handleManualCreate} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
-              Start Manual Creation
+            <Button onClick={handleTemplateCreate} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white">
+              Start Template Creation
             </Button>
           </CardFooter>
         </Card>

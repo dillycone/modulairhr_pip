@@ -2,6 +2,7 @@
 
 import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { Loader } from '@/components/ui';
 
 function LoginRedirectContent() {
   const router = useRouter();
@@ -29,13 +30,7 @@ function LoginRedirectContent() {
 
 export default function LoginRedirect() {
   return (
-    <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen bg-gray-100">
-        <div className="text-center">
-          <h2 className="text-lg font-medium">Loading...</h2>
-        </div>
-      </div>
-    }>
+    <Suspense fallback={<Loader variant="simple" message="Loading..." />}>
       <LoginRedirectContent />
     </Suspense>
   );

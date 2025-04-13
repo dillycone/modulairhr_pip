@@ -6,6 +6,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
 import { createClient } from '../../../../lib/supabase/client'; // Use the client-side Supabase helper - FIXED with relative path
+import { FullPipTemplate } from '@/lib/pip-templates';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -23,16 +24,7 @@ import { DatePicker } from "@/components/ui/date-picker"; // Import the new Date
 import { useToast } from "@/components/ui/use-toast"; // For showing feedback
 import { Loader2 } from "lucide-react"; // Loading spinner
 
-
-// Define the type for the props passed from the server component
-type FullPipTemplate = {
-    id: string;
-    name: string;
-    description: string | null;
-    content: string;
-    is_system_template: boolean;
-};
-
+// Define the props passed from the server component
 interface PipFormProps {
     userId: string;
     template: FullPipTemplate;
@@ -50,6 +42,9 @@ const pipFormSchema = z.object({
     success_metrics: z.string().min(10, { message: "Success metrics must be described (min 10 characters)." }),
     // status: z.string().optional(), // Status defaults to 'draft' in DB, no need in form usually
     // created_by: z.string().uuid(), // This will be the userId prop
+}).refine(data => !data.end_date || !data.start_date || data.end_date >= data.start_date, {
+    message: "End date must be on or after the start date",
+    path: ["end_date"], // Attach error to the end_date field
 });
 
 type PipFormValues = z.infer<typeof pipFormSchema>;
@@ -76,16 +71,8 @@ export function PipForm({ userId, template }: PipFormProps) {
     async function onSubmit(data: PipFormValues) {
         setIsSubmitting(true);
 
-        // Basic validation: end_date should not be before start_date
-        if (data.end_date < data.start_date) {
-            toast({
-                title: "Invalid Date Range",
-                description: "End date cannot be before the start date.",
-                variant: "destructive",
-            });
-            setIsSubmitting(false);
-            return; // Prevent submission
-        }
+        // The validation for end_date vs start_date has been moved to the Zod schema
+        // using .refine(), so we can remove the conditional check here
 
         // --- Placeholder Substitution --- Start
         let generatedContent = template.content; // Start with original template

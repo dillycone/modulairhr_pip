@@ -32,7 +32,10 @@ export default function UploadAudioPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [speakers, setSpeakers] = useState<Speaker[]>([{ name: '', role: '' }]);
+  const [speakers, setSpeakers] = useState<Speaker[]>([
+    { name: '', role: '' },
+    { name: '', role: '' }
+  ]);
 
   const handleBack = () => {
     router.back();
@@ -148,8 +151,8 @@ Example Output Format:
   };
 
   return (
-    <div className="max-w-4xl mx-auto p-8">
-      <Breadcrumb className="mb-4">
+    <div className="max-w-4xl mx-auto p-4">
+      <Breadcrumb className="mb-2">
         <BreadcrumbList>
           <BreadcrumbItem>
             <BreadcrumbLink href="/dashboard">Dashboard</BreadcrumbLink>
@@ -169,7 +172,7 @@ Example Output Format:
         </BreadcrumbList>
       </Breadcrumb>
       
-      <div className="flex items-center mb-8">
+      <div className="flex items-center mb-4">
         <Button 
           variant="ghost" 
           className="mr-4 p-0 h-auto" 
@@ -183,16 +186,16 @@ Example Output Format:
         </div>
       </div>
 
-      <div className="grid grid-cols-1 gap-8">
+      <div className="grid grid-cols-1 gap-4">
         <Card className="shadow-md border-t-4 border-t-indigo-500">
-          <CardHeader className="text-center">
+          <CardHeader className="text-center py-3">
             <CardTitle className="text-xl flex items-center justify-center">
-              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mr-2">1</div>
+              <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mr-2 text-sm">1</div>
               Audio File Upload
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-6">
+          <CardContent className="px-4 py-3">
+            <div className="space-y-4">
               <input
                 type="file"
                 ref={fileInputRef}
@@ -202,25 +205,26 @@ Example Output Format:
               />
               
               <div 
-                className={`border-2 border-dashed rounded-lg p-10 text-center cursor-pointer transition-all ${file ? 'bg-indigo-50 border-indigo-300' : 'border-gray-300 hover:border-indigo-300 hover:bg-gray-50'}`}
+                className={`border-2 border-dashed rounded-lg p-5 text-center cursor-pointer transition-all ${file ? 'bg-indigo-50 border-indigo-300' : 'border-gray-300 hover:border-indigo-300 hover:bg-gray-50'}`}
                 onClick={triggerFileInput}
               >
-                <div className={`mx-auto mb-4 h-16 w-16 rounded-full flex items-center justify-center ${file ? 'bg-indigo-100' : 'bg-gray-100'}`}>
-                  <Upload className={`h-8 w-8 ${file ? 'text-indigo-600' : 'text-slate-400'}`} />
+                <div className={`mx-auto mb-2 h-12 w-12 rounded-full flex items-center justify-center ${file ? 'bg-indigo-100' : 'bg-gray-100'}`}>
+                  <Upload className={`h-6 w-6 ${file ? 'text-indigo-600' : 'text-slate-400'}`} />
                 </div>
-                <h3 className="text-lg font-medium mb-2">
+                <h3 className="text-base font-medium mb-1">
                   {file ? (
                     <span className="text-indigo-600">{file.name}</span>
                   ) : (
                     'Drag and drop or click to upload'
                   )}
                 </h3>
-                <p className="text-sm text-slate-500 mb-4">
+                <p className="text-xs text-slate-500 mb-2">
                   Supports MP3, WAV, M4A, and other common audio formats (max 100MB)
                 </p>
                 <Button 
                   variant={file ? "outline" : "default"}
                   type="button"
+                  size="sm"
                   className={`mx-auto ${file ? 'border-indigo-300 text-indigo-600 hover:bg-indigo-50' : 'bg-indigo-600 hover:bg-indigo-700 text-white'}`}
                   onClick={(e) => {
                     e.stopPropagation();
@@ -247,19 +251,19 @@ Example Output Format:
         </Card>
 
         <Card className="shadow-md border-t-4 border-t-indigo-500">
-          <CardHeader className="text-center">
+          <CardHeader className="text-center py-3">
             <CardTitle className="text-xl flex items-center justify-center">
-              <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mr-2">2</div>
+              <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center mr-2 text-sm">2</div>
               Speaker Information
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
+          <CardContent className="px-4 py-3">
+            <div className="space-y-3">
               {speakers.map((speaker, index) => (
-                <div key={index} className="p-4 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
-                  <div className="flex justify-between items-center mb-3">
-                    <h3 className="text-base font-medium flex items-center">
-                      <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs mr-2">
+                <div key={index} className="p-3 border rounded-lg bg-white shadow-sm hover:shadow-md transition-shadow">
+                  <div className="flex justify-between items-center mb-2">
+                    <h3 className="text-sm font-medium flex items-center">
+                      <div className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-600 flex items-center justify-center text-xs mr-1">
                         {index + 1}
                       </div>
                       Speaker {index + 1}
@@ -271,31 +275,31 @@ Example Output Format:
                         onClick={() => handleRemoveSpeaker(index)}
                         className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 h-auto rounded-full"
                       >
-                        <Trash2 className="h-4 w-4" />
+                        <Trash2 className="h-3 w-3" />
                       </Button>
                     )}
                   </div>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div>
-                      <Label htmlFor={`name-${index}`} className="text-sm mb-1.5 block text-slate-700">Name</Label>
+                      <Label htmlFor={`name-${index}`} className="text-xs mb-1 block text-slate-700">Name</Label>
                       <Input
                         id={`name-${index}`}
                         value={speaker.name}
                         onChange={(e) => handleSpeakerChange(index, 'name', e.target.value)}
                         placeholder="e.g., John Smith"
-                        className="h-10 border-indigo-100 focus:border-indigo-300 focus:ring-indigo-200"
+                        className="h-8 border-indigo-100 focus:border-indigo-300 focus:ring-indigo-200 text-sm"
                       />
                     </div>
                     
                     <div>
-                      <Label htmlFor={`role-${index}`} className="text-sm mb-1.5 block text-slate-700">Role/Description</Label>
+                      <Label htmlFor={`role-${index}`} className="text-xs mb-1 block text-slate-700">Role/Description</Label>
                       <Input
                         id={`role-${index}`}
                         value={speaker.role}
                         onChange={(e) => handleSpeakerChange(index, 'role', e.target.value)}
                         placeholder="e.g., HRBP"
-                        className="h-10 border-indigo-100 focus:border-indigo-300 focus:ring-indigo-200"
+                        className="h-8 border-indigo-100 focus:border-indigo-300 focus:ring-indigo-200 text-sm"
                       />
                     </div>
                   </div>
@@ -305,10 +309,11 @@ Example Output Format:
               <Button
                 type="button"
                 variant="outline"
+                size="sm"
                 onClick={handleAddSpeaker}
-                className="w-full border-dashed border-indigo-300 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-400 transition-colors mt-2"
+                className="w-full border-dashed border-indigo-300 text-indigo-600 hover:bg-indigo-50 hover:text-indigo-700 hover:border-indigo-400 transition-colors mt-1"
               >
-                <Plus className="h-4 w-4 mr-2" />
+                <Plus className="h-3 w-3 mr-1" />
                 Add Another Speaker
               </Button>
             </div>
@@ -316,11 +321,11 @@ Example Output Format:
         </Card>
         
         <Card className="shadow-md border-t-4 border-t-indigo-500">
-          <CardContent className="p-6">
+          <CardContent className="p-4">
             <Button
               onClick={handleUpload}
               disabled={!file || isUploading}
-              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg transition-all px-6 py-3 h-auto text-lg font-medium"
+              className="w-full bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg transition-all px-4 py-2 h-auto text-base font-medium"
             >
               {isUploading ? (
                 <>

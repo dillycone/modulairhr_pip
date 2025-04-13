@@ -7,6 +7,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { useRouter, useSearchParams } from "next/navigation";
 import { loginSchema } from "@/lib/validations/auth";
+import { createRateLimitError } from "@/lib/error-helpers";
 
 type LoginFormValues = {
   email: string;
@@ -87,8 +88,8 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = "/dashboard" }: 
   const errorType = searchParams.get("error");
   const errorMessage = searchParams.get("message");
   const callbackError = errorType && errorMessage 
-    ? `Authentication error: ${decodeURIComponent(errorMessage)}` 
-    : errorType ? `Authentication error: ${errorType}` : null;
+    ? { code: errorType, message: decodeURIComponent(errorMessage) }
+    : errorType ? { code: errorType, message: `Authentication error (${errorType})` } : null;
 
   async function handleSubmit(values: LoginFormValues) {
     // Check if rate limited
@@ -128,12 +129,7 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = "/dashboard" }: 
   }
 
   // Create a rate limit error message
-  const rateLimitError = isRateLimited 
-    ? {
-      message: `Too many failed login attempts. Please try again in ${timeLeft} seconds.`,
-      code: 'RATE_LIMITED'
-    } 
-    : null;
+  const rateLimitError = isRateLimited ? createRateLimitError(timeLeft) : null;
 
   return (
     <AuthFormBase

@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { LoginForm } from '@/components/auth/login-form';
 import { useAuth } from '@/hooks/useAuth';
 import { safeRedirect } from '@/lib/auth-navigation';
-import { Skeleton } from '@/components/ui/skeleton';
+import { Loader } from '@/components/ui';
 
 function LoginFormWrapper() {
   const router = useRouter();
@@ -46,29 +46,9 @@ function LoginFormWrapper() {
   );
 }
 
-function LoginLoading() {
-  return (
-    <div className="flex min-h-screen items-center justify-center px-4 py-12">
-      <div className="rounded-lg border bg-card text-card-foreground shadow-sm w-full max-w-md">
-        <div className="flex flex-col space-y-1.5 p-6">
-          <div className="mx-auto">
-            <Skeleton className="h-8 w-32 mb-2" />
-          </div>
-          <Skeleton className="h-4 w-64 mx-auto" />
-        </div>
-        <div className="p-6 pt-0">
-          <Skeleton className="h-10 w-full mb-3" />
-          <Skeleton className="h-10 w-full mb-6" />
-          <Skeleton className="h-10 w-full" />
-        </div>
-      </div>
-    </div>
-  );
-}
-
 export default function Login() {
   return (
-    <Suspense fallback={<LoginLoading />}>
+    <Suspense fallback={<Loader variant="form" />}>
       <LoginFormWrapper />
     </Suspense>
   );

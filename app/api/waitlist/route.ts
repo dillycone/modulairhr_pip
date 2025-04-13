@@ -1,7 +1,8 @@
 import { Resend } from 'resend';
 import { NextResponse } from 'next/server';
+import { env } from '@/lib/env';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+const resend = new Resend(env.RESEND_API_KEY);
 
 export async function POST(request: Request) {
   try {
@@ -15,12 +16,14 @@ export async function POST(request: Request) {
     }
 
     // Send notification email to you
-    await resend.emails.send({
+    const result = await resend.emails.send({
       from: 'Waitlist <onboarding@resend.dev>',
-      to: process.env.NOTIFICATION_EMAIL as string, // Your email address
+      to: env.NOTIFICATION_EMAIL,
       subject: 'New Waitlist Signup!',
       text: `New signup for the waitlist:\n\nEmail: ${email}`,
     });
+    
+    console.log('Email sent to admin:', result);
 
     return NextResponse.json(
       { message: 'Successfully joined waitlist' },

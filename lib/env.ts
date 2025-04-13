@@ -19,6 +19,11 @@ const envSchema = z.object({
   
   // Development mode controls - optional
   NEXT_PUBLIC_DEV_BYPASS_AUTH: z.enum(['true', 'false']).optional().default('false'),
+  NEXT_PUBLIC_DISABLE_DEBUG: z.enum(['true', 'false']).optional().default('false'),
+
+  // Email notifications - required for waitlist
+  RESEND_API_KEY: z.string().min(1),
+  NOTIFICATION_EMAIL: z.string().email(),
 });
 
 // Validate environment variables at startup
@@ -32,6 +37,9 @@ function validateEnv() {
       UPSTASH_REDIS_REST_URL: process.env.UPSTASH_REDIS_REST_URL,
       UPSTASH_REDIS_REST_TOKEN: process.env.UPSTASH_REDIS_REST_TOKEN,
       NEXT_PUBLIC_DEV_BYPASS_AUTH: process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH,
+      NEXT_PUBLIC_DISABLE_DEBUG: process.env.NEXT_PUBLIC_DISABLE_DEBUG,
+      RESEND_API_KEY: process.env.RESEND_API_KEY,
+      NOTIFICATION_EMAIL: process.env.NOTIFICATION_EMAIL,
     });
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -60,4 +68,19 @@ export function shouldBypassAuth(): boolean {
   
   // Check if bypasses are explicitly disabled via environment variable
   return env.NEXT_PUBLIC_DEV_BYPASS_AUTH !== 'false';
+}
+
+/**
+ * Determines if debug features should be accessible
+ * Debug features are only available in development mode and can be explicitly enabled/disabled
+ */
+export function isDebugEnabled(): boolean {
+  // Never enable in production
+  if (process.env.NODE_ENV === 'production') {
+    return false;
+  }
+  
+  // In development, can be explicitly disabled with environment variable
+  const debugDisabled = process.env.NEXT_PUBLIC_DISABLE_DEBUG === 'true';
+  return !debugDisabled;
 }

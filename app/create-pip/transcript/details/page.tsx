@@ -8,7 +8,7 @@ import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, Calendar as CalendarIcon, Save } from "lucide-react";
+import { ArrowLeft, Calendar as CalendarIcon, Save, Loader2 } from "lucide-react";
 import {
   Breadcrumb,
   BreadcrumbItem,
@@ -35,6 +35,7 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
+import { useToast } from "@/components/ui/use-toast";
 
 // Define the Zod schema for validation
 const pipSchema = z.object({
@@ -59,6 +60,7 @@ export default function PIPDetailsFromTranscript() {
   const router = useRouter();
   const { state } = useTranscriptFlow();
   const [isSaving, setIsSaving] = useState(false);
+  const { toast } = useToast();
 
   // Initialize react-hook-form
   const form = useForm<FormData>({
@@ -92,12 +94,54 @@ export default function PIPDetailsFromTranscript() {
   // Define the submit handler for react-hook-form
   const onSubmit: SubmitHandler<FormData> = async (data) => {
     setIsSaving(true);
-    console.log('PIP Data:', data);
-    // Here you would typically save the data
-    await new Promise(resolve => setTimeout(resolve, 1500));
-    alert('PIP created successfully! This is a placeholder - in a real app, this would save the data.');
-    router.push('/dashboard');
-    setIsSaving(false);
+    
+    try {
+      const response = await fetch('/api/pips', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          employee_name: data.employeeName,
+          position: data.employeePosition,
+          manager_name: data.manager,
+          department: data.department,
+          start_date: data.startDate.toISOString().slice(0, 10),
+          review_date: data.reviewDate.toISOString().slice(0, 10),
+          performance_issues: data.performanceIssues,
+          improvement_goals: data.improvementGoals,
+          resources_support: data.resourcesSupport,
+          consequences: data.consequences,
+          status: 'draft',
+          created_by: 'user-id', // This should be replaced with actual user ID
+          // Include transcript info if available from context
+          transcript_data: state.transcript || null,
+          transcript_summary: state.summary || null,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to create PIP');
+      }
+
+      toast({
+        title: "PIP Created",
+        description: `Successfully created PIP for ${data.employeeName}.`,
+      });
+      
+      router.push('/dashboard');
+      router.refresh();
+    } catch (error: any) {
+      console.error("Error saving PIP:", error);
+      toast({
+        title: "Error",
+        description: `Failed to save PIP: ${error.message}`,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
@@ -381,8 +425,17 @@ export default function PIPDetailsFromTranscript() {
               className="bg-indigo-600 hover:bg-indigo-700"
               disabled={isSaving}
             >
-              {isSaving ? 'Creating PIP...' : 'Create PIP'}
-              {!isSaving && <Save className="ml-2 h-4 w-4" />}
+              {isSaving ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <span>Creating PIP...</span>
+                </>
+              ) : (
+                <>
+                  <span>Create PIP</span>
+                  <Save className="ml-2 h-4 w-4" />
+                </>
+              )}
             </Button>
           </div>
         </div>

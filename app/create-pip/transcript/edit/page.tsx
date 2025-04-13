@@ -41,27 +41,12 @@ export default function EditTranscriptPage() {
   const formattedTranscript = useMemo(() => {
     if (!transcript) return '';
     
-    // Add styling to timestamps (format: MM:SS)
+    // Add styling to timestamps (format: MM:SS) - specifically targeting line beginnings
+    // which is the format provided by the API transcription
     return transcript.replace(
-      /\b(\d{1,2}):(\d{2})\b/g, 
-      '<span class="text-blue-600 font-medium">$1:$2</span>'
+      /(^|\n)(\d{1,2}):(\d{2})\b/g, 
+      '$1<span class="text-blue-600 font-medium">$2:$3</span>'
     );
-  }, [transcript]);
-
-  // Process the transcript for display - ensure timestamps are properly formatted
-  const processedTranscript = useMemo(() => {
-    if (!transcript) return '';
-    
-    // Ensure each line starts with a timestamp if missing
-    const lines = transcript.split('\n');
-    return lines.map((line, i) => {
-      // If line already has a timestamp (00:00 format), return as is
-      if (line.match(/^\d{2}:\d{2}/)) return line;
-      
-      // Add dummy timestamp to lines without one
-      const timestamp = `${String(Math.floor(i/2)).padStart(2, '0')}:${String((i % 60) * 5).padStart(2, '0')}`;
-      return `${timestamp} ${line}`;
-    }).join('\n');
   }, [transcript]);
 
   useEffect(() => {

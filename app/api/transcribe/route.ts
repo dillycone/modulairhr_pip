@@ -21,13 +21,18 @@ const API_KEY = env.GEMINI_API_KEY;
 
 // Input validation schemas
 const speakerSchema = z.object({
-  name: z.string().min(1).max(100)
+  name: z.string().min(1).max(100),
+  role: z.string().min(1).max(100)
 });
 
 const transcribeInputSchema = z.object({
-  file: z.instanceof(File),
-  prompt: z.string().min(1).max(1000),
+  // Accept either a File or a Blob
+  audio: z.instanceof(Blob).optional(),
+  file: z.instanceof(File).optional(),
+  prompt: z.string().min(1).max(2000).optional(),
   speakers: z.array(speakerSchema).optional()
+}).refine(data => data.audio || data.file, {
+  message: "Either 'audio' or 'file' must be provided"
 });
 
 // Rate limiter: 10 requests per hour per user
@@ -94,46 +99,68 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    // Parse and validate input
+    // Parse and validate input from form data
     const formData = await req.formData();
+    
+    // Check for either audio blob or file
+    const audioBlob = formData.get('audio') as Blob | null;
     const file = formData.get('file') as File | null;
-    const prompt = formData.get('prompt') as string | null;
     const speakersJson = formData.get('speakers') as string | null;
+    const prompt = formData.get('prompt') as string | null;
 
-    try {
-      const speakers = speakersJson ? JSON.parse(speakersJson) : undefined;
-      transcribeInputSchema.parse({
-        file,
-        prompt,
-        speakers
-      });
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return NextResponse.json({ error: 'Invalid input', details: error.errors }, { status: 400 });
-      }
-      throw error;
+    // The actual audio file to process (either from 'audio' or 'file' field)
+    let audioFile: Blob;
+    let mimeType: string;
+
+    if (file) {
+      audioFile = file;
+      mimeType = file.type;
+    } else if (audioBlob) {
+      audioFile = audioBlob;
+      mimeType = audioBlob.type || 'audio/webm'; // Default to webm for audio blobs from recording
+    } else {
+      return NextResponse.json({ error: 'No audio file provided' }, { status: 400 });
     }
 
-    // Rest of the existing code remains unchanged
+    // Parse speakers information
+    let speakers: { name: string, role: string }[] = [];
+    if (speakersJson) {
+      try {
+        speakers = JSON.parse(speakersJson);
+        // Validate the speakers array
+        if (!Array.isArray(speakers) || !speakers.every(s => typeof s.name === 'string' && typeof s.role === 'string')) {
+          return NextResponse.json({ error: 'Invalid speakers format' }, { status: 400 });
+        }
+      } catch (error) {
+        console.error('Error parsing speakers JSON:', error);
+        return NextResponse.json({ error: 'Invalid speakers JSON' }, { status: 400 });
+      }
+    }
+
+    // Generate a default prompt if none was provided (ensuring it includes speaker info)
+    let transcriptionPrompt = prompt || generateDefaultPrompt(speakers);
+    
+    // Initialize Gemini model
     const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
     const model = genAI.getGenerativeModel({ model: MODEL_NAME });
 
     // Convert file to Buffer and then to base64
-    const buffer = Buffer.from(await file!.arrayBuffer());
+    const buffer = Buffer.from(await audioFile.arrayBuffer());
     const base64Audio = buffer.toString('base64');
 
     const audioPart = {
       inlineData: {
-        mimeType: file!.type,
+        mimeType: mimeType,
         data: base64Audio,
       },
     };
 
     const parts = [
       audioPart,
-      { text: prompt! },
+      { text: transcriptionPrompt },
     ];
 
+    // Generate the transcript
     const result = await model.generateContent({
       contents: [{ role: "user", parts }],
       generationConfig: {
@@ -144,20 +171,10 @@ export async function POST(req: NextRequest) {
     if (result.response) {
       let transcript = result.response.text();
       
-      // If we have speaker information, try to ensure the transcript uses the correct names
-      if (speakersJson && transcript) {
-        try {
-          const speakers = JSON.parse(speakersJson);
-          speakers.forEach((speaker: { name: string }, index: number) => {
-            const speakerPattern = new RegExp(`Speaker ${index + 1}:`, 'g');
-            transcript = transcript.replace(speakerPattern, `${speaker.name}:`);
-          });
-        } catch (e) {
-          console.error('Error processing speaker information:', e);
-        }
-      }
-      
+      // Ensure transcript has proper formatting
       if (transcript) {
+        // Process transcript to ensure timestamp format is consistent
+        transcript = formatTranscript(transcript, speakers);
         return NextResponse.json({ transcript });
       } else {
         console.error("Error extracting transcript from Gemini response:", result.response);
@@ -172,4 +189,53 @@ export async function POST(req: NextRequest) {
     console.error('Error processing transcription request:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
   }
+}
+
+/**
+ * Generates a default prompt for transcription with proper speaker diarization instructions
+ */
+function generateDefaultPrompt(speakers: { name: string, role: string }[]): string {
+  return `Analyze the provided audio file to perform speaker diarization and generate accurate timestamps.
+
+Instructions:
+1. Identify each distinct speaker in the conversation using the provided speaker information:
+${speakers.map((s, i) => `   - Replace "Speaker ${i + 1}" with "${s.name}" (${s.role})`).join('\n')}
+2. Determine the precise start time for each speaker's utterance based on the source timing.
+3. Format the output with each utterance on a new line, starting with the accurate timestamp in MM:SS format, followed by the speaker's name and a colon.
+
+Example Output Format:
+00:05 ${speakers[0]?.name || 'Speaker'}: [utterance]
+00:09 ${speakers[1]?.name || 'Speaker'}: [utterance]
+01:15 ${speakers[0]?.name || 'Speaker'}: [utterance]`;
+}
+
+/**
+ * Ensures transcript has proper formatting with timestamps and speaker names
+ */
+function formatTranscript(transcript: string, speakers: { name: string, role: string }[]): string {
+  // First, ensure each line starts with a timestamp in MM:SS format
+  let formattedText = transcript
+    .split('\n')
+    .map(line => {
+      // If the line doesn't start with a timestamp pattern (MM:SS), try to add one
+      if (!line.match(/^\d{1,2}:\d{2}/)) {
+        // Skip empty lines or preserve formatting lines
+        if (!line.trim() || line.trim().startsWith('-')) {
+          return line;
+        }
+        // Add a default timestamp if missing
+        return `00:00 ${line}`;
+      }
+      return line;
+    })
+    .join('\n');
+  
+  // Ensure proper speaker names are used
+  speakers.forEach((speaker, index) => {
+    // Replace both "Speaker X:" and just "Speaker X" (with or without colon)
+    const speakerPattern = new RegExp(`Speaker ${index + 1}:?\\s`, 'g');
+    formattedText = formattedText.replace(speakerPattern, `${speaker.name}: `);
+  });
+  
+  return formattedText;
 }

@@ -6,6 +6,7 @@ import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { safeRedirect } from "@/lib/auth-navigation";
+import { Loader } from "@/components/ui";
 
 function CheckEmailPageContent() {
   const searchParams = useSearchParams();
@@ -45,18 +46,7 @@ function CheckEmailPageContent() {
 
 export default function CheckEmailPage() {
   return (
-    <Suspense fallback={
-      <div className="container flex h-screen w-full flex-col items-center justify-center">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="text-center text-2xl font-bold">Check your email</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4 text-center">
-            <p className="text-lg">Loading...</p>
-          </CardContent>
-        </Card>
-      </div>
-    }>
+    <Suspense fallback={<Loader variant="card" title="Check your email" />}>
       <CheckEmailPageContent />
     </Suspense>
   );

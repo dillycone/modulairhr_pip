@@ -1,8 +1,27 @@
+"use client";
+
+import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import AuthDebugger from '@/components/debug/auth-status';
 import SessionRefreshButton from '@/components/auth/session-refresh';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { isDebugEnabled } from '@/lib/env';
 
 export default function DebugPage() {
+  const router = useRouter();
+  
+  useEffect(() => {
+    // Redirect to home page if not in development mode
+    if (!isDebugEnabled()) {
+      router.push('/');
+    }
+  }, [router]);
+
+  // Only render content if in development mode
+  if (typeof window !== 'undefined' && !isDebugEnabled()) {
+    return null;
+  }
+  
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-2xl font-bold mb-4">Auth Debug Page</h1>

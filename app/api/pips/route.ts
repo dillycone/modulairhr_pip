@@ -43,8 +43,11 @@ export async function GET() {
         console.error('Error with direct query:', error);
         
         // Last resort fallback - use empty data
-        if (error.message && error.message.includes('role "admin" does not exist')) {
-          console.log('Role check error detected, providing empty data set');
+        // Check for role/permission related errors using error code or message pattern
+        if (error.code === '42501' || // PostgreSQL permission denied error
+            error.code === '3D000' || // Invalid database role error
+            error.message?.match(/permission|role|privilege|access denied/i)) {
+          console.log('Permission or role error detected, providing empty data set');
           return NextResponse.json({ data: [] });
         }
         

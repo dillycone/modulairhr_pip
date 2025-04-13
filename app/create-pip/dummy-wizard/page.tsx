@@ -28,7 +28,7 @@ export default function DummyWizardPage() {
   const [progressValue, setProgressValue] = useState(0);
 
   const handleBackNavigation = () => {
-    router.back(); // Or router.push('/dashboard/create-pip');
+    router.back(); // Or router.push('/create-pip');
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -174,11 +174,11 @@ export default function DummyWizardPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink onClick={(e) => { e.preventDefault(); router.push('/dashboard/create-pip'); }}>Create PIP</BreadcrumbLink>
+            <BreadcrumbLink onClick={(e) => { e.preventDefault(); router.push('/create-pip'); }}>Create PIP</BreadcrumbLink>
           </BreadcrumbItem>
            <BreadcrumbSeparator />
           <BreadcrumbItem>
-             <BreadcrumbLink onClick={(e) => { e.preventDefault(); router.push('/dashboard/create-pip/transcript'); }}>From Transcript</BreadcrumbLink>
+             <BreadcrumbLink onClick={(e) => { e.preventDefault(); router.push('/create-pip/transcript'); }}>From Transcript</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

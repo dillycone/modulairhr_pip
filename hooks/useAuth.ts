@@ -102,6 +102,7 @@ export interface AuthContextType extends AuthState {
   signOut: () => Promise<{ error: AuthError | null }>;
   resetPassword: (email: string) => Promise<AuthResponse>;
   updatePassword: (newPassword: string) => Promise<AuthResponse>;
+  onAuthStateReady: (callback: () => void) => () => void;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);

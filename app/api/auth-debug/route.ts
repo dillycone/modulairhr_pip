@@ -3,8 +3,17 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import type { Database } from '@/types/supabase';
 import { isUserAdmin } from '@/lib/utils/is-admin';
+import { isDebugEnabled } from '@/lib/env';
 
 export async function GET() {
+  // Only allow access in development mode
+  if (!isDebugEnabled()) {
+    return NextResponse.json({
+      status: 'error',
+      message: 'Debug endpoints are only available in development mode'
+    }, { status: 403 });
+  }
+  
   try {
     console.log("Auth debug endpoint called");
     

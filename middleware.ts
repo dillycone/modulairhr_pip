@@ -1,6 +1,6 @@
 import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs';
 import { NextResponse, type NextRequest } from 'next/server';
-import { userHasRole } from '@/lib/utils/get-user-role';
+import { userHasRole } from '@/lib/utils/permissions';
 import { shouldBypassAuth } from '@/lib/env';
 
 // Define protected routes that require *any* authenticated user
@@ -12,7 +12,6 @@ const PROTECTED_ROUTES = [
 
 // Define routes that require the user to have the 'admin' role
 const ADMIN_ROUTES = [
-  '/dashboard/settings/pip-templates',
 ];
 
 export async function middleware(req: NextRequest) {

@@ -16,6 +16,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator
 } from "@/components/ui/breadcrumb";
+import { useTranscriptFlow } from '../_context/transcript-flow-context';
 
 interface Speaker {
   name: string;
@@ -24,6 +25,7 @@ interface Speaker {
 
 export default function RecordAudioPage() {
   const router = useRouter();
+  const { dispatch } = useTranscriptFlow();
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [recordingData, setRecordingData] = useState<Blob | null>(null);
@@ -146,8 +148,15 @@ export default function RecordAudioPage() {
         throw new Error('Failed to transcribe audio');
       }
 
+      // Get the response data
+      const result = await response.json();
+      
+      // Update context with transcript and speaker information
+      dispatch({ type: 'SET_TRANSCRIPT', payload: result.transcript });
+      dispatch({ type: 'SET_SPEAKERS', payload: speakers });
+
       setSuccess(true);
-      router.push('/dashboard/create-pip/details');
+      router.push('/create-pip/transcript/edit');
     } catch (err) {
       console.error('Error transcribing:', err);
       setError('Failed to transcribe the recording. Please try again.');
@@ -165,7 +174,7 @@ export default function RecordAudioPage() {
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>
-            <BreadcrumbLink onClick={(e) => { e.preventDefault(); router.push('/dashboard/create-pip'); }}>Create PIP</BreadcrumbLink>
+            <BreadcrumbLink onClick={(e) => { e.preventDefault(); router.push('/create-pip'); }}>Create PIP</BreadcrumbLink>
           </BreadcrumbItem>
           <BreadcrumbSeparator />
           <BreadcrumbItem>

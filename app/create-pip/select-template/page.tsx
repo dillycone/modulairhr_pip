@@ -3,36 +3,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
 import { Card, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-
-// Define the type for the template data
-type PipTemplate = {
-    id: string;
-    name: string;
-    description: string | null;
-    is_system_template: boolean;
-};
-
-// Hard-coded system templates to avoid database RLS issues completely
-const systemTemplates: PipTemplate[] = [
-    { 
-        id: 'system-template-1', 
-        name: 'Standard PIP Template', 
-        description: 'Default template for performance improvement plans', 
-        is_system_template: true 
-    },
-    { 
-        id: 'system-template-2', 
-        name: 'Sales Performance Template', 
-        description: 'Customized for tracking sales performance metrics', 
-        is_system_template: true 
-    },
-    { 
-        id: 'system-template-3', 
-        name: 'Technical Skills Template', 
-        description: 'Focused on technical competency improvement', 
-        is_system_template: true 
-    }
-];
+import { PipTemplate, systemTemplateList } from '@/lib/pip-templates';
 
 export default async function SelectPipTemplatePage() {
     const supabase = await createServerSupabaseClient();
@@ -48,10 +19,9 @@ export default async function SelectPipTemplatePage() {
         redirect('/login');
     }
 
-    // 2. Use only the hard-coded system templates - no database query
-    // This completely bypasses any RLS policy issues with "admin" role
-    console.log("Using hard-coded system templates only");
-    const templates = systemTemplates;
+    // 2. Use the shared system templates list
+    console.log("Using shared system templates list");
+    const templates = systemTemplateList;
 
     // 3. Render the selection UI
     return (
