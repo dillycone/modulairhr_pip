@@ -9,6 +9,7 @@ import { z } from "zod";
 import { createClient } from '@/lib/supabase/client'; // Use the client-side Supabase helper
 import { FullPipTemplate } from '@/lib/pip-templates';
 import { pipSchema, PipFormData } from '@/types/pip';
+import { formatDateToYYYYMMDD } from '@/lib/utils';
 
 import { Button } from "@/components/ui/button";
 import {
@@ -95,8 +96,8 @@ export function PipForm({ userId, template }: PipFormProps) {
                 },
                 body: JSON.stringify({
                     employee_name: data.employee_name,
-                    start_date: data.start_date.toISOString().slice(0, 10),
-                    end_date: data.end_date ? data.end_date.toISOString().slice(0, 10) : undefined,
+                    start_date: formatDateToYYYYMMDD(data.start_date),
+                    end_date: data.end_date ? formatDateToYYYYMMDD(data.end_date) : undefined,
                     objectives: data.objectives,
                     improvements_needed: data.improvements_needed,
                     success_metrics: data.success_metrics,

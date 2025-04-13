@@ -2,6 +2,7 @@ import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
 import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { Database } from '@/types/supabase';
+import { format } from 'date-fns';
 
 export async function GET() {
   try {
@@ -99,10 +100,10 @@ export async function POST(request: Request) {
       department: pipData.department,
       manager_name: pipData.manager_name || pipData.manager || pipData.managerName,
       
-      // Date fields
-      start_date: pipData.start_date || (pipData.startDate ? new Date(pipData.startDate).toISOString().slice(0, 10) : null),
-      end_date: pipData.end_date || (pipData.endDate ? new Date(pipData.endDate).toISOString().slice(0, 10) : null),
-      review_date: pipData.review_date || (pipData.reviewDate ? new Date(pipData.reviewDate).toISOString().slice(0, 10) : null),
+      // Date fields - use date-fns for consistent timezone handling
+      start_date: pipData.start_date || (pipData.startDate ? format(new Date(pipData.startDate), "yyyy-MM-dd") : null),
+      end_date: pipData.end_date || (pipData.endDate ? format(new Date(pipData.endDate), "yyyy-MM-dd") : null),
+      review_date: pipData.review_date || (pipData.reviewDate ? format(new Date(pipData.reviewDate), "yyyy-MM-dd") : null),
       
       // Template flow fields
       objectives: pipData.objectives,

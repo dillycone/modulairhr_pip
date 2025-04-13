@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranscriptFlow } from '../_context/transcript-flow-context';
 import { useAuth } from '@/hooks/useAuth';
+import { formatDateToYYYYMMDD } from '@/lib/utils';
 
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -107,8 +108,8 @@ export default function PIPDetailsFromTranscript() {
           position: data.position,
           manager_name: data.manager_name,
           department: data.department,
-          start_date: data.start_date.toISOString().slice(0, 10),
-          review_date: data.review_date.toISOString().slice(0, 10),
+          start_date: formatDateToYYYYMMDD(data.start_date),
+          review_date: formatDateToYYYYMMDD(data.review_date),
           performance_issues: data.performance_issues,
           improvement_goals: data.improvement_goals,
           resources_support: data.resources_support,
