@@ -9,6 +9,7 @@ import { formatDateToYYYYMMDD } from '@/lib/utils';
 import { useForm, Controller, SubmitHandler } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { pipSchema, PipFormData } from '@/types/pip';
+import { z } from 'zod';
 import { createReviewDateAfterStartDateRefinement } from '@/lib/validations/dates';
 
 import { Button } from "@/components/ui/button";
@@ -42,7 +43,18 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 
 // Use the unified pipSchema but add transcript-specific refinements
-const transcriptPipSchema = pipSchema.merge(createReviewDateAfterStartDateRefinement());
+const transcriptPipSchema = pipSchema.superRefine((data, ctx) => {
+  // Check if review date is after start date
+  if (data.start_date && data.review_date && 
+      data.start_date instanceof Date && data.review_date instanceof Date && 
+      data.review_date <= data.start_date) {
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Review date must be after the start date",
+      path: ["review_date"],
+    });
+  }
+});
 
 type FormData = PipFormData;
 
@@ -108,15 +120,14 @@ export default function PIPDetailsFromTranscript() {
           position: data.position,
           manager_name: data.manager_name,
           department: data.department,
-          start_date: formatDateToYYYYMMDD(data.start_date),
-          review_date: formatDateToYYYYMMDD(data.review_date),
+          start_date: data.start_date ? formatDateToYYYYMMDD(data.start_date) : undefined,
+          review_date: data.review_date ? formatDateToYYYYMMDD(data.review_date) : undefined,
           performance_issues: data.performance_issues,
           improvement_goals: data.improvement_goals,
           resources_support: data.resources_support,
           consequences: data.consequences,
           status: 'draft',
-          created_by: user.id, // Use the actual user ID instead of hardcoded value
-          // Include transcript info if available from context
+          created_by: user.id,
           transcript_data: state.transcript || null,
           transcript_summary: state.summary || null,
         }),
