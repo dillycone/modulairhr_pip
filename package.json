@@ -11,12 +11,14 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "prepare": "husky",
-    "format": "prettier --write ."
+    "format": "prettier --write .",
+    "type-check": "tsc --noEmit"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
       "prettier --write",
       "next lint --dir .",
+      "tsc --noEmit",
       "jest --findRelatedTests --passWithNoTests"
     ],
     "*.{json,css,md}": [
