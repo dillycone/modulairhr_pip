@@ -4,6 +4,7 @@ import { createServerClient } from '@supabase/ssr';
 import type { Database } from '@/types/supabase';
 import { type RequestCookies } from 'next/dist/server/web/spec-extension/cookies';
 import { NextRequest } from 'next/server';
+import { supabaseConfig } from './env';
 
 // Dynamically import cookies from next/headers in a try-catch
 // This will work in App Router and fail silently in Pages Router
@@ -26,8 +27,8 @@ export async function createServerSupabaseClient(options?: { req?: NextRequest }
   if (options?.req) {
     const { cookies } = options.req;
     return createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      supabaseConfig.url,
+      supabaseConfig.anonKey,
       {
         cookies: {
           get(name: string) {
@@ -47,8 +48,8 @@ export async function createServerSupabaseClient(options?: { req?: NextRequest }
   // If we're in app router, use the next/headers module
   if (cookiesModule?.cookies) {
     return createServerClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      supabaseConfig.url,
+      supabaseConfig.anonKey,
       {
         cookies: {
           async get(name: string) {
@@ -71,8 +72,8 @@ export async function createServerSupabaseClient(options?: { req?: NextRequest }
 
   // Fallback case - use a minimal cookies implementation
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseConfig.url,
+    supabaseConfig.anonKey,
     {
       cookies: {
         get: () => undefined,
@@ -94,8 +95,8 @@ export async function createServerSupabaseClientWithCookies(cookiesOrRequest: Re
     : cookiesOrRequest;
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseConfig.url,
+    supabaseConfig.anonKey,
     {
       cookies: {
         get(name: string) {

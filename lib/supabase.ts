@@ -2,6 +2,8 @@
 
 import { createBrowserClient } from '@supabase/ssr';
 import type { Database } from '../types/supabase';
+import { createClient } from '@supabase/supabase-js';
+import { supabaseConfig } from './env';
 
 // Flag to check if we're in browser environment
 const isBrowser = typeof window !== 'undefined';
@@ -19,8 +21,8 @@ export const supabase = isBrowser ? getOrCreateClient() : createEmptyClient();
 function getOrCreateClient() {
   if (!supabaseClient && isBrowser) {
     supabaseClient = createBrowserClient<Database>(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      supabaseConfig.url,
+      supabaseConfig.anonKey,
       {
         auth: {
           flowType: 'pkce',
@@ -46,3 +48,16 @@ function createEmptyClient() {
     }
   } as unknown as ReturnType<typeof createBrowserClient<Database>>;
 }
+
+// Create a single supabase client for interacting with the database
+export const supabaseJs = createClient<Database>(
+  supabaseConfig.url,
+  supabaseConfig.anonKey,
+  {
+    auth: {
+      persistSession: true,
+      autoRefreshToken: true,
+      detectSessionInUrl: true,
+    },
+  }
+);

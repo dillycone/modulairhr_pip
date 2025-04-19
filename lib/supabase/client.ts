@@ -2,6 +2,8 @@
 
 import { createBrowserClient } from '@supabase/ssr';
 import type { Database } from '@/types/supabase';
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabaseConfig } from '../env';
 
 /**
  * Creates and returns a configured Supabase client for browser environments.
@@ -9,8 +11,8 @@ import type { Database } from '@/types/supabase';
  */
 export function createClient() {
   return createBrowserClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    supabaseConfig.url,
+    supabaseConfig.anonKey,
     {
       auth: {
         flowType: 'pkce',
@@ -46,4 +48,9 @@ export function createClient() {
       }
     }
   );
-} 
+}
+
+export const supabaseClient = createClientComponentClient<Database>({
+  supabaseUrl: supabaseConfig.url,
+  supabaseKey: supabaseConfig.anonKey,
+}); 

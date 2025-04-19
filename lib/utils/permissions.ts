@@ -27,7 +27,7 @@ export function getUserRoles(user: User | null): UserRole[] {
   // Filter to only valid roles and cast to UserRole enum
   return roles
     .filter(isValidUserRole)
-    .map(role => role as UserRole);
+    .map((role: string) => role as UserRole);
 }
 
 /**
@@ -110,8 +110,12 @@ export function hasPermission(user: User | null, action: PermissionAction): bool
   const [resource, actionName] = action;
   const permissions = getUserPermissions(user);
   
-  // @ts-ignore - TypeScript can't infer the nested access here
-  return !!permissions[resource]?.[actionName];
+  // Type-safe access to nested properties using optional chaining
+  const resourcePermissions = permissions[resource as keyof Permissions];
+  if (!resourcePermissions) return false;
+  
+  // Type assertion to access the action property
+  return !!(resourcePermissions as Record<string, boolean>)[actionName];
 }
 
 /**
@@ -158,11 +162,14 @@ function mergePermissions(base: Permissions, override: Permissions): Permissions
     const resourceKey = resource as keyof Permissions;
     
     // For each action in the resource
-    Object.keys(result[resourceKey]).forEach(action => {
-      const actionKey = action as keyof typeof result[typeof resourceKey];
+    const resourceActions = result[resourceKey];
+    Object.keys(resourceActions).forEach(action => {
+      // Use type assertion to safely access nested properties
+      const baseValue = (base[resourceKey] as Record<string, boolean>)[action];
+      const overrideValue = (override[resourceKey] as Record<string, boolean>)[action];
       
-      // @ts-ignore - TypeScript can't infer the nested access here
-      result[resourceKey][actionKey] = base[resourceKey][actionKey] || override[resourceKey][actionKey];
+      // Apply OR logic for the permission
+      (result[resourceKey] as Record<string, boolean>)[action] = baseValue || overrideValue;
     });
   });
   

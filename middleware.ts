@@ -3,7 +3,9 @@ import { userHasRole } from '@/lib/utils/permissions';
 import { shouldBypassAuth } from '@/lib/env';
 import { UserRole } from '@/types/roles';
 import { createServerClient } from '@supabase/ssr';
+import { type SupabaseClient } from '@supabase/supabase-js';
 import type { Database } from '@/types/supabase';
+import { supabaseConfig } from '@/lib/env';
 
 // Define protected routes that require *any* authenticated user
 // Note: Using pathname.startsWith() for route matching means that ALL sub-routes 
@@ -75,18 +77,17 @@ export async function middleware(req: NextRequest) {
     const sessionId = authCookie?.value || 'anonymous';
     
     // Check if we've refreshed the session recently for this user
-    const lastRefreshTime = sessionRefreshCache.get(sessionId);
+    const lastRefreshTime = sessionRefreshCache.get(sessionId) || 0; // Default to 0 if undefined
     const now = Date.now();
     const shouldRefresh = !lastRefreshTime || (now - lastRefreshTime > SESSION_REFRESH_INTERVAL);
     
     try {
       // Create a Supabase client configured to use cookies
-      let supabase;
+      let supabase: SupabaseClient<Database>;
       try {
-        // @ts-ignore - Ignore type errors for now, we'll handle them below
-        supabase = createServerClient(
-          process.env.NEXT_PUBLIC_SUPABASE_URL!,
-          process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        supabase = createServerClient<Database>(
+          supabaseConfig.url,
+          supabaseConfig.anonKey,
           {
             cookies: {
               get(name: string) {
