@@ -61,6 +61,7 @@ export default function ExpertiseSection() {
                 className="object-cover w-full h-full"
                 width={500}
                 height={500}
+                priority
               />
               <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-indigo-900/80 to-transparent p-6">
                 <p className="text-white font-medium">

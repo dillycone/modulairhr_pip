@@ -13,8 +13,7 @@ jest.mock('next/navigation', () => ({
   useSearchParams: jest.fn().mockReturnValue(new URLSearchParams()),
 }));
 
-// Skip tests for now - to be fixed later
-describe.skip('LoginForm component', () => {
+describe('LoginForm component', () => {
   // Set up user-event
   const user = userEvent.setup();
 

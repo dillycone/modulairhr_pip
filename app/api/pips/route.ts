@@ -1,14 +1,14 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { NextResponse } from 'next/server';
 import { Database } from '@/types/supabase';
 import { format } from 'date-fns';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
+
+export const dynamic = 'force-dynamic';
 
 export async function GET() {
   try {
-    // Create a Supabase client with server-side auth - IMPORTANT: await cookies()
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore });
+    // Create the Supabase client using the server helper that properly awaits cookies
+    const supabase = await createServerSupabaseClient();
     
     // Verify user is authenticated
     const { data: { user }, error: authError } = await supabase.auth.getUser();
@@ -71,9 +71,8 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
-    // Create a Supabase client with server-side auth - IMPORTANT: await cookies()
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore });
+    // Create the Supabase client using the server helper that properly awaits cookies
+    const supabase = await createServerSupabaseClient();
     
     // Verify user is authenticated
     const { data: { user }, error: authError } = await supabase.auth.getUser();

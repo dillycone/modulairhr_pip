@@ -83,7 +83,10 @@ export default function DashboardSidebar() {
       <div className="p-4">
         <Button 
           onClick={() => router.push('/create-pip/select-template')} 
-          className="w-full bg-indigo-600 hover:bg-indigo-700 text-white"
+          className={cn(
+            "w-full text-white",
+            isActive('/create-pip') ? "bg-indigo-700 hover:bg-indigo-800" : "bg-indigo-600 hover:bg-indigo-700"
+          )}
         >
           <PlusCircle className="h-4 w-4 mr-2" /> Create New PIP
         </Button>
@@ -122,7 +125,13 @@ export default function DashboardSidebar() {
           href="/create-pip/transcript-source" 
           icon={<FileText className="h-4 w-4" />} 
           label="Transcript Tools" 
-          active={isActive('/create-pip/transcript')}
+          active={isActive('/create-pip/transcript') || isActive('/create-pip/transcript-source')}
+        />
+        <SidebarLink 
+          href="/create-pip/select-template" 
+          icon={<FileText className="h-4 w-4" />} 
+          label="Templates" 
+          active={isActive('/create-pip/select-template')}
         />
         <SidebarLink 
           href="/dashboard/notifications" 

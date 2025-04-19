@@ -16,7 +16,7 @@ export default async function SelectPipTemplatePage() {
     
     if (!isDev && (userError || !user)) {
         console.error("User not authenticated:", userError?.message || "Auth session missing!");
-        redirect('/login');
+        redirect('/auth/login');
     }
 
     // 2. Use the shared system templates list

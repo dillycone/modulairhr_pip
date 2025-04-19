@@ -9,6 +9,7 @@ export async function GET() {
     NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL ? 'present' : 'missing',
     NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'present' : 'missing',
     GEMINI_API_KEY: process.env.GEMINI_API_KEY ? 'present' : 'missing',
+    MOCK_DATA_ENABLED: process.env.MOCK_DATA_ENABLED || 'not set',
   };
   
   // Check via env module
@@ -16,6 +17,7 @@ export async function GET() {
     NEXT_PUBLIC_SUPABASE_URL: env.NEXT_PUBLIC_SUPABASE_URL ? 'present' : 'missing',
     NEXT_PUBLIC_SUPABASE_ANON_KEY: env.NEXT_PUBLIC_SUPABASE_ANON_KEY ? 'present' : 'missing',
     GEMINI_API_KEY: env.GEMINI_API_KEY ? 'present' : 'missing',
+    MOCK_DATA_ENABLED: env.MOCK_DATA_ENABLED ? 'enabled' : 'disabled',
   };
   
   // Check for .env file existence

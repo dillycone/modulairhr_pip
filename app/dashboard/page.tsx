@@ -11,6 +11,7 @@ import { PlusCircle } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { useToast } from '@/components/ui/use-toast';
+import { verifySession, refreshSessionFromCookies } from '@/lib/auth-helpers';
 
 export default function DashboardPage() {
   const { user, loading } = useAuth();
@@ -25,46 +26,53 @@ export default function DashboardPage() {
       if (!user) return;
 
       try {
-        // Use mock data only in development if explicitly enabled
-        // This allows for local development without a DB connection
-        if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_MOCK_DATA === 'true') {
-          console.log('DEV MODE: Using mock PIP data');
-          const mockData = [
-            {
-              id: 'mock-1',
-              employee_name: 'Jane Smith',
-              manager_name: 'John Manager',
-              start_date: '2023-12-01',
-              end_date: '2024-01-31',
-              status: 'On Track',
-              progress: 65,
-              next_due_date: '2024-01-15',
-              warning_level: 'First Warning',
-              accountability_status: 'Active',
-              created_by: user.id,
-            },
-            {
-              id: 'mock-2',
-              employee_name: 'Tom Jones',
-              manager_name: 'John Manager',
-              start_date: '2023-11-15',
-              end_date: '2024-01-15',
-              status: 'Needs Attention',
-              progress: 40,
-              next_due_date: '2024-01-05',
-              warning_level: 'Second Warning',
-              accountability_status: 'Active',
-              created_by: user.id,
-            }
-          ];
-          const adaptedPips = mockData.map(adaptPipForUI);
-          setPips(adaptedPips);
+        // Verify session is valid before proceeding
+        const { user: sessionUser, error: sessionError } = await verifySession();
+        
+        if (sessionError || !sessionUser) {
+          console.error("Session verification failed:", sessionError);
+          setError("Unauthorized. Please sign in.");
+          router.push('/auth/login?redirect=/dashboard');
           return;
         }
 
+        // The mock data check is now handled server-side in the API endpoint
+        // No client-side mock data is needed here anymore
+
         // Use our new API endpoint to fetch PIPs
-        const response = await fetch('/api/pips');
+        const response = await fetch('/api/pips', {
+          // Add cache control to prevent stale data
+          cache: 'no-store',
+          headers: {
+            'Cache-Control': 'no-cache'
+          }
+        });
+        
         if (!response.ok) {
+          // If we get a 401, try one more refresh before giving up
+          if (response.status === 401) {
+            console.log("Got 401, attempting session refresh...");
+            const { user: refreshedUser, error: refreshError } = await refreshSessionFromCookies();
+            
+            if (refreshedUser && !refreshError) {
+              console.log("Session refreshed, retrying fetch...");
+              const retryResponse = await fetch('/api/pips', {
+                cache: 'no-store',
+                headers: {
+                  'Cache-Control': 'no-cache'
+                }
+              });
+              
+              if (retryResponse.ok) {
+                const retryResult = await retryResponse.json();
+                const adaptedPips = (Array.isArray(retryResult.data) ? retryResult.data : []).map(adaptPipForUI);
+                setPips(adaptedPips);
+                setError(null);
+                return;
+              }
+            }
+          }
+          
           const responseData = await response.json();
           throw new Error(responseData.error || 'Failed to fetch PIPs from API');
         }

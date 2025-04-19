@@ -1,4 +1,4 @@
-"use client"; // Mark as a Client Component
+"use client";
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -6,7 +6,7 @@ import { createEndDateAfterStartDateRefinement } from '@/lib/validations/dates';
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
-import { createClient } from '@/lib/supabase/client'; // Use the client-side Supabase helper
+import { createClient } from '@/lib/supabase/client';
 import { FullPipTemplate } from '@/lib/pip-templates';
 import { pipSchema, PipFormData } from '@/types/pip';
 import { formatDateToYYYYMMDD } from '@/lib/utils';
@@ -23,19 +23,55 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { DatePicker } from "@/components/ui/date-picker"; // Import the new DatePicker
-import { useToast } from "@/components/ui/use-toast"; // For showing feedback
-import { Loader2 } from "lucide-react"; // Loading spinner
+import { DatePicker } from "@/components/ui/date-picker";
+import { useToast } from "@/components/ui/use-toast";
+import { Loader2 } from "lucide-react";
 
-// Define the props passed from the server component
 interface PipFormProps {
     userId: string;
     template: FullPipTemplate;
 }
 
-// We'll use the unified pipSchema from types/pip.ts
-// But we can add a template-specific refinement to check dates
-const templatePipSchema = pipSchema.merge(createEndDateAfterStartDateRefinement());
+// Create the combined schema properly - use refine instead of merge
+const templatePipSchema = z.object({
+    employee_name: z.string().min(1, { message: "Employee name is required" }),
+    position: z.string().optional(),
+    department: z.string().optional(),
+    manager_name: z.string().optional(),
+    start_date: z.date({ required_error: "Start date is required" }),
+    end_date: z.date().optional(),
+    review_date: z.date().optional(),
+    objectives: z.string().optional(),
+    improvements_needed: z.string().optional(),
+    success_metrics: z.string().optional(),
+    performance_issues: z.string().optional(),
+    improvement_goals: z.string().optional(),
+    resources_support: z.string().optional(),
+    consequences: z.string().optional(),
+    generated_content: z.string().optional(),
+    status: z.string().optional(),
+    created_by: z.string().optional(),
+    transcript_data: z.string().optional(),
+    transcript_summary: z.string().optional(),
+}).refine((data) => {
+    // At least one of transcript fields or template fields must be present
+    return (
+        (!!data.performance_issues || !!data.improvement_goals || !!data.resources_support || !!data.consequences) ||
+        (!!data.objectives || !!data.improvements_needed || !!data.success_metrics)
+    );
+}, {
+    message: "Either performance issues/goals or objectives/improvements is required",
+    path: ["objectives"],
+}).refine((data) => {
+    // Check if end date is after start date
+    if (data.start_date && data.end_date) {
+        return data.end_date >= data.start_date;
+    }
+    return true;
+}, {
+    message: "End date must be on or after the start date",
+    path: ["end_date"]
+});
 
 type PipFormValues = z.infer<typeof templatePipSchema>;
 
@@ -49,8 +85,11 @@ export function PipForm({ userId, template }: PipFormProps) {
         resolver: zodResolver(templatePipSchema),
         defaultValues: {
             employee_name: "",
-            start_date: undefined, // Initialize date fields as undefined
-            end_date: undefined,   // Initialize date fields as undefined
+            position: "",
+            department: "",
+            manager_name: "",
+            start_date: undefined,
+            end_date: undefined,
             objectives: "",
             improvements_needed: "",
             success_metrics: "",
@@ -61,34 +100,58 @@ export function PipForm({ userId, template }: PipFormProps) {
     async function onSubmit(data: PipFormValues) {
         setIsSubmitting(true);
 
-        // The validation for end_date vs start_date has been moved to the Zod schema
-        // using .refine(), so we can remove the conditional check here
-
-        // --- Placeholder Substitution --- Start
-        let generatedContent = template.content; // Start with original template
-
-        // Define placeholder mappings (add more as needed)
-        const placeholders = {
-            '{{employee_name}}': data.employee_name,
-            '{{start_date}}': data.start_date.toLocaleDateString(), // Format date as needed
-            '{{end_date}}': data.end_date.toLocaleDateString(),     // Format date as needed
-            '{{objectives}}': data.objectives,
-            '{{improvements_needed}}': data.improvements_needed,
-            '{{success_metrics}}': data.success_metrics,
-            // Add other relevant fields if they have placeholders
-            // '{{manager_name}}': user?.user_metadata?.name || 'Manager', // Example if manager info is needed
-        };
-
-        // Perform replacements
-        for (const [placeholder, value] of Object.entries(placeholders)) {
-            // Use a regex for global replacement (replace all occurrences)
-            const regex = new RegExp(placeholder.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&'), 'g');
-            generatedContent = generatedContent.replace(regex, value || ''); // Replace with value or empty string if null/undefined
+        // Simple template replacement without regex
+        let generatedContent = template.content;
+        
+        // Get values safely
+        const employeeName = data.employee_name || '';
+        const position = data.position || '';
+        const department = data.department || '';
+        const managerName = data.manager_name || '';
+        const startDate = data.start_date ? data.start_date.toLocaleDateString() : '';
+        const endDate = data.end_date ? data.end_date.toLocaleDateString() : '';
+        const objectives = data.objectives || '';
+        const improvementsNeeded = data.improvements_needed || '';
+        const successMetrics = data.success_metrics || '';
+        
+        // Perform simple string replacements
+        if (generatedContent.includes('{{employee_name}}')) {
+            generatedContent = generatedContent.split('{{employee_name}}').join(employeeName);
         }
-        // --- Placeholder Substitution --- End
+        
+        if (generatedContent.includes('{{position}}')) {
+            generatedContent = generatedContent.split('{{position}}').join(position);
+        }
+        
+        if (generatedContent.includes('{{department}}')) {
+            generatedContent = generatedContent.split('{{department}}').join(department);
+        }
+        
+        if (generatedContent.includes('{{manager_name}}')) {
+            generatedContent = generatedContent.split('{{manager_name}}').join(managerName);
+        }
+        
+        if (generatedContent.includes('{{start_date}}')) {
+            generatedContent = generatedContent.split('{{start_date}}').join(startDate);
+        }
+        
+        if (generatedContent.includes('{{end_date}}')) {
+            generatedContent = generatedContent.split('{{end_date}}').join(endDate);
+        }
+        
+        if (generatedContent.includes('{{objectives}}')) {
+            generatedContent = generatedContent.split('{{objectives}}').join(objectives);
+        }
+        
+        if (generatedContent.includes('{{improvements_needed}}')) {
+            generatedContent = generatedContent.split('{{improvements_needed}}').join(improvementsNeeded);
+        }
+        
+        if (generatedContent.includes('{{success_metrics}}')) {
+            generatedContent = generatedContent.split('{{success_metrics}}').join(successMetrics);
+        }
 
         try {
-            // Use the new API endpoint instead of directly accessing the database
             const response = await fetch('/api/pips', {
                 method: 'POST',
                 headers: {
@@ -96,15 +159,14 @@ export function PipForm({ userId, template }: PipFormProps) {
                 },
                 body: JSON.stringify({
                     employee_name: data.employee_name,
-                    start_date: formatDateToYYYYMMDD(data.start_date),
-                    end_date: data.end_date ? formatDateToYYYYMMDD(data.end_date) : undefined,
+                    start_date: data.start_date ? formatDateToYYYYMMDD(data.start_date) : null,
+                    end_date: data.end_date ? formatDateToYYYYMMDD(data.end_date) : null,
                     objectives: data.objectives,
                     improvements_needed: data.improvements_needed,
                     success_metrics: data.success_metrics,
                     created_by: userId,
                     status: 'draft',
-                    generated_content: generatedContent, // Save the substituted content
-                    // Include additional unified schema fields if available
+                    generated_content: generatedContent,
                     position: data.position,
                     department: data.department,
                     manager_name: data.manager_name
@@ -153,7 +215,50 @@ export function PipForm({ userId, template }: PipFormProps) {
                     )}
                 />
 
-                {/* Dates - Re-added */}
+                {/* Position, Department, Manager fields */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <FormField
+                        control={form.control}
+                        name="position"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Position</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Job Title" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="department"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Department</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Department" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                    <FormField
+                        control={form.control}
+                        name="manager_name"
+                        render={({ field }) => (
+                            <FormItem>
+                                <FormLabel>Manager Name</FormLabel>
+                                <FormControl>
+                                    <Input placeholder="Manager's full name" {...field} />
+                                </FormControl>
+                                <FormMessage />
+                            </FormItem>
+                        )}
+                    />
+                </div>
+
+                {/* Dates */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                      <FormField
                         control={form.control}
@@ -161,7 +266,6 @@ export function PipForm({ userId, template }: PipFormProps) {
                         render={({ field }) => (
                             <FormItem className="flex flex-col">
                                 <FormLabel>Start Date</FormLabel>
-                                {/* Use the custom DatePicker component */}
                                 <DatePicker field={field} />
                                 <FormMessage />
                             </FormItem>
@@ -173,7 +277,6 @@ export function PipForm({ userId, template }: PipFormProps) {
                         render={({ field }) => (
                             <FormItem className="flex flex-col">
                                 <FormLabel>End Date</FormLabel>
-                                {/* Use the custom DatePicker component */}
                                 <DatePicker field={field} />
                                 <FormMessage />
                             </FormItem>
@@ -263,4 +366,4 @@ export function PipForm({ userId, template }: PipFormProps) {
             </form>
         </Form>
     );
-} 
+}

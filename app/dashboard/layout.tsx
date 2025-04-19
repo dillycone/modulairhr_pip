@@ -1,9 +1,11 @@
 "use client";
 import { cn } from "@/lib/utils";
-import { ReactNode, useEffect } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
 import DashboardSidebar from "@/components/dashboard/dashboard-sidebar";
+import { Loader2 } from "lucide-react";
+import { getSessionWithRefresh, isSessionRefreshInProgress } from "@/lib/session-manager";
 
 /**
  * This layout wraps all /dashboard routes. 
@@ -11,22 +13,45 @@ import DashboardSidebar from "@/components/dashboard/dashboard-sidebar";
 export default function DashboardLayout({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Redirect to login if user is not authenticated
+  // Check if we should bypass auth (only in development mode)
+  const bypassAuth = process.env.NODE_ENV === 'development' && 
+                     process.env.NEXT_PUBLIC_DEV_BYPASS_AUTH === 'true';
+
+  // Validate session and handle auth redirects
   useEffect(() => {
-    // Skip auth check in development
-    const isDevelopment = process.env.NODE_ENV === 'development';
-    if (isDevelopment) {
+    if (loading) return;
+
+    // Skip auth check in development if flag is set
+    if (bypassAuth) {
       console.log('Development mode: bypassing auth redirect in dashboard layout');
       return;
     }
     
-    if (!loading && !user) {
+    // If we already have a user, just skip validation
+    if (user) {
+      console.log('Skipping session refresh in layout to avoid rate limiting');
+      return;
+    }
+    
+    // If no user and not in development, redirect
+    if (!user) {
       console.log('No user found in dashboard, redirecting to login');
       const currentPath = window.location.pathname;
       router.push(`/auth/login?redirect=${encodeURIComponent(currentPath)}`);
     }
-  }, [user, loading, router]);
+  }, [user, loading, router, bypassAuth]);
+
+  // Show loading when necessary
+  if (loading || isLoading) {
+    return (
+      <div className="flex min-h-screen items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-indigo-600" />
+        <span className="ml-2 text-xl">Loading...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="flex min-h-screen">

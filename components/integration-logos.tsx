@@ -17,7 +17,14 @@ export default function IntegrationLogos() {
           key={index}
           className="grayscale hover:grayscale-0 opacity-70 hover:opacity-100 transition-all duration-300"
         >
-          <Image src={logo.src || "/placeholder.svg"} alt={logo.name} width={120} height={40} className="h-10 object-contain" />
+          <Image 
+            src={logo.src || "/placeholder.svg"} 
+            alt={logo.name} 
+            width={120} 
+            height={40} 
+            className="h-10 object-contain"
+            priority={index === 0} 
+          />
         </div>
       ))}
     </div>

@@ -1,7 +1,6 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import type { Database } from '@/types/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 // Custom email template configuration
 const emailTemplates = {
@@ -91,21 +90,7 @@ export async function GET(request: NextRequest) {
   const code = requestUrl.searchParams.get('code');
   
   if (code) {
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient<Database>({ 
-      cookies: () => cookieStore,
-      options: {
-        auth: {
-          flowType: 'pkce',
-          cookieOptions: {
-            name: 'devpip-auth',
-            lifetime: 60 * 60 * 8, // 8 hours
-            sameSite: 'lax',
-            secure: true
-          }
-        }
-      }
-    });
+    const supabase = await createServerSupabaseClient();
     
     // Exchange the code for a session
     await supabase.auth.exchangeCodeForSession(code);
@@ -119,21 +104,7 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient<Database>({ 
-      cookies: () => cookieStore,
-      options: {
-        auth: {
-          flowType: 'pkce',
-          cookieOptions: {
-            name: 'devpip-auth',
-            lifetime: 60 * 60 * 8, // 8 hours
-            sameSite: 'lax',
-            secure: true
-          }
-        }
-      } 
-    });
+    const supabase = await createServerSupabaseClient();
     
     const body = await request.json();
     const { action, ...data } = body;

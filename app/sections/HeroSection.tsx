@@ -43,6 +43,7 @@ export default function HeroSection() {
                 className="object-cover w-full h-full"
                 width={1000}
                 height={600}
+                priority
               />
             </div>
           </div>

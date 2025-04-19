@@ -1,7 +1,8 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ListChecks, AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+// Alternative import approach
+import * as Icons from 'lucide-react';
 
 interface DashboardSummaryProps {
   activeCount: number;
@@ -16,7 +17,7 @@ export default function DashboardSummary({ activeCount, overdueCount, completedC
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Active PIPs</CardTitle>
-          <ListChecks className="h-4 w-4 text-muted-foreground" />
+          <Icons.ListChecks className="h-4 w-4 text-muted-foreground" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{activeCount}</div>
@@ -27,7 +28,7 @@ export default function DashboardSummary({ activeCount, overdueCount, completedC
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Overdue Tasks/PIPs</CardTitle>
-          <AlertTriangle className="h-4 w-4 text-destructive" />
+          <Icons.AlertTriangle className="h-4 w-4 text-destructive" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{overdueCount}</div>
@@ -38,7 +39,7 @@ export default function DashboardSummary({ activeCount, overdueCount, completedC
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Recently Completed</CardTitle>
-          <CheckCircle className="h-4 w-4 text-green-600" />
+          <Icons.CheckCircle className="h-4 w-4 text-green-600" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{completedCount}</div>
@@ -49,7 +50,7 @@ export default function DashboardSummary({ activeCount, overdueCount, completedC
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">In Accountability</CardTitle>
-          <Clock className="h-4 w-4 text-amber-600" />
+          <Icons.Clock className="h-4 w-4 text-amber-600" />
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold">{accountabilityCount}</div>

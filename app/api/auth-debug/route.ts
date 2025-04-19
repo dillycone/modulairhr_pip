@@ -1,9 +1,8 @@
 import { NextResponse } from 'next/server';
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
 import type { Database } from '@/types/supabase';
 import { isUserAdmin } from '@/lib/utils/is-admin';
 import { isDebugEnabled } from '@/lib/env';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
 
 export async function GET() {
   // Only allow access in development mode
@@ -17,9 +16,8 @@ export async function GET() {
   try {
     console.log("Auth debug endpoint called");
     
-    // Use the route handler client for API routes
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient<Database>({ cookies: () => cookieStore });
+    // Use the server supabase client that properly awaits cookies
+    const supabase = await createServerSupabaseClient();
     console.log("Supabase client created");
     
     // Get session first

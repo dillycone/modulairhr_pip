@@ -1,13 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { createServerSupabaseClient } from '@/lib/supabase-server';
 import type { Database } from '@/types/supabase';
+import { createServerSupabaseClient } from '@/lib/supabase-server';
+import { useMockData } from '@/lib/env';
 
 // Required roles to access this endpoint
 const REQUIRED_ROLES = ['admin', 'manager', 'hr_admin'] as const;
 
 export async function GET(req: NextRequest) {
   try {
-    // Initialize Supabase client
+    // Initialize Supabase client that properly awaits cookies
     const supabase = await createServerSupabaseClient();
 
     // Check if user is authenticated
@@ -40,10 +41,59 @@ export async function GET(req: NextRequest) {
     // Get the user ID
     const userId = session.user.id;
     
-    // Query for transcripts in the database
-    // If a transcripts table doesn't exist yet, this will be a mock response to not block development
-    // TODO: Update when the actual transcripts table is created
+    // Define mock transcript data in one place for consistency
+    const getMockTranscripts = (userId: string) => [
+      {
+        id: '1',
+        title: 'Performance Review - John Doe',
+        date: '2025-03-15',
+        duration: '00:45:30',
+        speakers: 2,
+        content: 'This is a transcript of a performance review meeting with John Doe.',
+        user_id: userId,
+        created_at: '2025-03-15T14:30:00Z',
+      },
+      {
+        id: '2',
+        title: 'Coaching Session - Jane Smith',
+        date: '2025-03-10',
+        duration: '00:32:15',
+        speakers: 3,
+        content: 'This is a transcript of a coaching session with Jane Smith.',
+        user_id: userId,
+        created_at: '2025-03-10T10:15:00Z',
+      },
+      {
+        id: '3',
+        title: 'Improvement Discussion - Alex Johnson',
+        date: '2025-03-01',
+        duration: '01:12:45',
+        speakers: 2,
+        content: 'This is a transcript of an improvement discussion with Alex Johnson.',
+        user_id: userId,
+        created_at: '2025-03-01T09:00:00Z',
+      },
+      {
+        id: '4',
+        title: 'Department Meeting - Q1 Review',
+        date: '2025-02-25',
+        duration: '01:30:00',
+        speakers: 5,
+        content: 'This is a transcript of a department meeting reviewing Q1 performance.',
+        user_id: userId,
+        created_at: '2025-02-25T15:45:00Z',
+      }
+    ];
     
+    // Check if we should use mock data
+    if (useMockData()) {
+      console.log('Using mock transcript data instead of database query');
+      return NextResponse.json({
+        transcripts: getMockTranscripts(userId)
+      });
+    }
+    
+    // Otherwise, query real data from the database
     try {
       const { data: transcripts, error } = await supabase
         .from('transcripts')
@@ -53,106 +103,30 @@ export async function GET(req: NextRequest) {
       
       if (error) {
         console.error('Database query error:', error);
-        // If table doesn't exist yet, return mock data
+        
+        // For table doesn't exist errors, provide a clearer error message
         if (error.code === '42P01') {
-          // Return mock data for development until the table is created
+          console.error('Transcripts table does not exist in the database');
           return NextResponse.json({
-            transcripts: [
-              {
-                id: '1',
-                title: 'Performance Review - John Doe',
-                date: '2025-03-15',
-                duration: '00:45:30',
-                speakers: 2,
-                content: 'This is a transcript of a performance review meeting with John Doe.',
-                user_id: userId,
-                created_at: '2025-03-15T14:30:00Z',
-              },
-              {
-                id: '2',
-                title: 'Coaching Session - Jane Smith',
-                date: '2025-03-10',
-                duration: '00:32:15',
-                speakers: 3,
-                content: 'This is a transcript of a coaching session with Jane Smith.',
-                user_id: userId,
-                created_at: '2025-03-10T10:15:00Z',
-              },
-              {
-                id: '3',
-                title: 'Improvement Discussion - Alex Johnson',
-                date: '2025-03-01',
-                duration: '01:12:45',
-                speakers: 2,
-                content: 'This is a transcript of an improvement discussion with Alex Johnson.',
-                user_id: userId,
-                created_at: '2025-03-01T09:00:00Z',
-              },
-              {
-                id: '4',
-                title: 'Department Meeting - Q1 Review',
-                date: '2025-02-25',
-                duration: '01:30:00',
-                speakers: 5,
-                content: 'This is a transcript of a department meeting reviewing Q1 performance.',
-                user_id: userId,
-                created_at: '2025-02-25T15:45:00Z',
-              }
-            ]
-          });
+            error: 'Database schema missing required tables',
+            details: 'The transcripts table has not been created in the database'
+          }, { status: 500 });
         }
-        return NextResponse.json({ error: 'Failed to fetch transcripts' }, { status: 500 });
+        
+        return NextResponse.json({
+          error: 'Failed to fetch transcripts',
+          details: error.message
+        }, { status: 500 });
       }
       
       return NextResponse.json({ transcripts });
       
     } catch (dbError) {
-      console.error('Database error:', dbError);
-      // Return mock data for development
+      console.error('Unhandled database error:', dbError);
       return NextResponse.json({
-        transcripts: [
-          {
-            id: '1',
-            title: 'Performance Review - John Doe',
-            date: '2025-03-15',
-            duration: '00:45:30',
-            speakers: 2,
-            content: 'This is a transcript of a performance review meeting with John Doe.',
-            user_id: userId,
-            created_at: '2025-03-15T14:30:00Z',
-          },
-          {
-            id: '2',
-            title: 'Coaching Session - Jane Smith',
-            date: '2025-03-10',
-            duration: '00:32:15',
-            speakers: 3,
-            content: 'This is a transcript of a coaching session with Jane Smith.',
-            user_id: userId,
-            created_at: '2025-03-10T10:15:00Z',
-          },
-          {
-            id: '3',
-            title: 'Improvement Discussion - Alex Johnson',
-            date: '2025-03-01',
-            duration: '01:12:45',
-            speakers: 2,
-            content: 'This is a transcript of an improvement discussion with Alex Johnson.',
-            user_id: userId,
-            created_at: '2025-03-01T09:00:00Z',
-          },
-          {
-            id: '4',
-            title: 'Department Meeting - Q1 Review',
-            date: '2025-02-25',
-            duration: '01:30:00',
-            speakers: 5,
-            content: 'This is a transcript of a department meeting reviewing Q1 performance.',
-            user_id: userId,
-            created_at: '2025-02-25T15:45:00Z',
-          }
-        ]
-      });
+        error: 'Database error occurred',
+        details: dbError instanceof Error ? dbError.message : 'Unknown error'
+      }, { status: 500 });
     }
 
   } catch (error) {

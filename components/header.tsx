@@ -20,7 +20,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 const AUTHENTICATED_ROUTES = [
   '/dashboard',
   '/profile',
-  '/settings'
+  '/settings',
+  '/create-pip'
 ];
 
 // Feature flags
@@ -29,8 +30,9 @@ const SHOW_TESTIMONIALS = false;
 export default function Header() {
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isScrolled, setIsScrolled] = useState(false)
-  const [isClient, setIsClient] = useState(false)
-  const { user, signOut, loading } = useAuth()
+  // Safely access auth context with error handling
+  const auth = useAuth()
+  const { user, signOut, loading } = auth
   const pathname = usePathname()
   const router = useRouter()
 
@@ -38,8 +40,6 @@ export default function Header() {
   const isAuthenticatedRoute = AUTHENTICATED_ROUTES.some(route => pathname?.startsWith(route))
 
   useEffect(() => {
-    setIsClient(true)
-    
     const handleScroll = () => {
       if (window.scrollY > 10) {
         setIsScrolled(true)
@@ -55,10 +55,7 @@ export default function Header() {
   const handleSignOut = async () => {
     try {
       await signOut();
-      // After successful sign out, redirect to home page
       router.push('/');
-      // For a more reliable redirect, you can also use:
-      // window.location.href = '/';
     } catch (error) {
       console.error('Error during sign out:', error);
       router.push('/');
@@ -71,15 +68,17 @@ export default function Header() {
     router.push('/dashboard')
   }
 
-  // Only render auth-dependent elements when client-side and not loading
-  const showAuthUI = isClient && !loading
+  // For the landing page, never show unauthorized errors
+  const showAuthUI = !loading && !auth.error
+  // If we're on a landing page (not authenticated route) and have an auth error, don't try to show user information
+  const safeUser = (!isAuthenticatedRoute && auth.error) ? null : user
 
   return (
     <header
       className={`w-full sticky top-0 z-50 transition-all duration-200 ${isScrolled ? "bg-white/95 backdrop-blur-md shadow-sm" : "bg-transparent"}`}
     >
       <div className="flex h-16 items-center justify-between px-4 md:px-6">
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 invisible">
           <Link href="/" className="flex items-center gap-2">
             <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-600 to-blue-500 flex items-center justify-center text-white font-bold">
               M
@@ -117,8 +116,8 @@ export default function Header() {
           </nav>
         )}
         <div className="hidden md:flex items-center gap-4">
-          {/* Show login/signup only when client-side, not loading, no user, AND not on an authenticated route */}
-          {isClient && !loading && !user && !isAuthenticatedRoute && (
+          {/* Show login/signup when not loading, no user, and no error */}
+          {showAuthUI && !safeUser && !isAuthenticatedRoute && (
             <>
               <Link href="/auth/login">
                 <Button variant="ghost" className="text-slate-700 hover:text-indigo-600 hover:bg-indigo-50">
@@ -130,14 +129,14 @@ export default function Header() {
               </Link>
             </>
           )}
-          {/* Show User Dropdown when client-side, not loading, user exists, AND not on an authenticated route */}
-          {isClient && !loading && user && !isAuthenticatedRoute && (
+          {/* Show User Dropdown when not loading, no error, and user exists */}
+          {showAuthUI && safeUser && !isAuthenticatedRoute && (
              <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                   <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.user_metadata?.avatar_url || undefined} alt={user.email || 'User'} />
-                    <AvatarFallback>{user.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                    <AvatarImage src={safeUser.user_metadata?.avatar_url || undefined} alt={safeUser.email || 'User'} />
+                    <AvatarFallback>{safeUser.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                   </Avatar>
                 </Button>
               </DropdownMenuTrigger>
@@ -146,7 +145,7 @@ export default function Header() {
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">My Account</p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {user.email}
+                      {safeUser.email}
                     </p>
                   </div>
                 </DropdownMenuLabel>
@@ -155,7 +154,6 @@ export default function Header() {
                   <LayoutDashboard className="mr-2 h-4 w-4" />
                   <span>Dashboard</span>
                 </DropdownMenuItem>
-                {/* Add other relevant links like Settings if needed */}
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={handleSignOut} className="text-red-600 focus:text-red-600 focus:bg-red-50">
                   <LogOut className="mr-2 h-4 w-4" />
@@ -217,8 +215,8 @@ export default function Header() {
                 </Link>
               </>
             )}
-            {/* Show login/signup only when client-side, not loading, no user, AND not on an authenticated route */}
-            {isClient && !loading && !user && !isAuthenticatedRoute && (
+            {/* Show login/signup when not loading, no error, and no user */}
+            {showAuthUI && !safeUser && !isAuthenticatedRoute && (
               <>
                 <Link href="/auth/login" className="w-full">
                   <Button
@@ -240,18 +238,18 @@ export default function Header() {
                 <DropdownMenuSeparator /> {/* Separator before user section */}
               </>
             )}
-            {/* Show User Info/Actions when client-side, not loading, user exists, AND not on an authenticated route */}
-             {isClient && !loading && user && !isAuthenticatedRoute && (
+            {/* Show User Info/Actions when not loading, no error, and user exists */}
+            {showAuthUI && safeUser && !isAuthenticatedRoute && (
               <>
                 <div className="flex items-center gap-3 px-1 py-2">
                    <Avatar className="h-8 w-8">
-                    <AvatarImage src={user.user_metadata?.avatar_url || undefined} alt={user.email || 'User'} />
-                    <AvatarFallback>{user.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
+                    <AvatarImage src={safeUser.user_metadata?.avatar_url || undefined} alt={safeUser.email || 'User'} />
+                    <AvatarFallback>{safeUser.email?.charAt(0).toUpperCase() || 'U'}</AvatarFallback>
                   </Avatar>
                   <div className="flex flex-col space-y-1">
                     <p className="text-sm font-medium leading-none">My Account</p>
                     <p className="text-xs leading-none text-muted-foreground">
-                      {user.email}
+                      {safeUser.email}
                     </p>
                   </div>
                 </div>

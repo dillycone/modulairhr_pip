@@ -19,9 +19,11 @@ export const systemTemplates: Record<string, FullPipTemplate> = {
         content: `# Performance Improvement Plan for {{employee_name}}
 
 ## Plan Details
+* Position: {{position}}
+* Department: {{department}}
 * Start Date: {{start_date}}
 * End Date: {{end_date}}
-* Manager: [Manager Name]
+* Manager: {{manager_name}}
 
 ## Objectives
 {{objectives}}
@@ -42,9 +44,11 @@ This document serves as a formal performance improvement plan. Regular check-ins
         content: `# Sales Performance Improvement Plan for {{employee_name}}
 
 ## Plan Duration
+* Position: {{position}}
+* Department: {{department}}
 * Start: {{start_date}}
 * End: {{end_date}}
-* Department: Sales
+* Manager: {{manager_name}}
 
 ## Sales Objectives
 {{objectives}}
@@ -65,9 +69,11 @@ This sales performance plan will be reviewed bi-weekly with your manager and the
         content: `# Technical Improvement Plan for {{employee_name}}
 
 ## Plan Timeline
+* Position: {{position}}
+* Department: {{department}}
 * Start: {{start_date}}
 * End: {{end_date}}
-* Department: Technical
+* Manager: {{manager_name}}
 
 ## Technical Objectives
 {{objectives}}

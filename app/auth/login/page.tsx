@@ -7,27 +7,43 @@ import { useAuth } from '@/hooks/useAuth';
 import { safeRedirect } from '@/lib/auth-navigation';
 import { Loader } from '@/components/ui';
 
-function LoginFormWrapper() {
+/**
+ * Login page component
+ * - Handles redirection to dashboard when user is already authenticated
+ * - Shows login form when user is not authenticated
+ */
+function LoginPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectParam = searchParams.get('redirect');
   const validRedirectPath = safeRedirect(redirectParam);
-  const { user, loading } = useAuth();
+  
+  const { user, loading, isInitialized } = useAuth();
 
+  // Redirect if already logged in
   useEffect(() => {
-    if (user && !loading) {
+    if (isInitialized && user && !loading) {
       router.push(validRedirectPath);
     }
-  }, [user, loading, router, validRedirectPath]);
+  }, [user, loading, router, validRedirectPath, isInitialized]);
 
   // This callback is for optional post-login actions (logging, analytics)
-  // The actual redirect happens via the useEffect hook above
-  // which detects the user state change automatically
-  const handleLoginSuccess = () => { 
-    console.log('Login form reported success');
-    // Add any additional post-login actions here (analytics, etc.)
+  const handleLoginSuccess = () => {
+    // User will be redirected by the useEffect hook above
+    // Additional login success actions can be added here
+  };
+
+  // Show loader until auth state is initialized
+  if (!isInitialized) {
+    return <div className="flex h-screen items-center justify-center"><Loader variant="form" /></div>;
   }
 
+  // If user is authenticated already, show a loading spinner until redirection happens
+  if (user) {
+    return <div className="flex h-screen items-center justify-center"><Loader variant="form" /></div>;
+  }
+
+  // Show login form
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12">
       <div className="rounded-lg border bg-card text-card-foreground shadow-sm w-full max-w-md">
@@ -48,8 +64,8 @@ function LoginFormWrapper() {
 
 export default function Login() {
   return (
-    <Suspense fallback={<Loader variant="form" />}>
-      <LoginFormWrapper />
+    <Suspense fallback={<div className="flex h-screen items-center justify-center"><Loader variant="form" /></div>}>
+      <LoginPage />
     </Suspense>
   );
 }

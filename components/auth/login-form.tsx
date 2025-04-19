@@ -1,13 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { AuthFormBase, AuthFormValues } from "./auth-form-base";
-import { useSignIn } from "@/hooks/useSignIn";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useAuth, AuthErrorCode } from "@/hooks/useAuth";
+import { AuthFormBase } from "./auth-form-base";
+import { createRateLimitError } from "@/lib/auth-helpers";
 import { loginSchema } from "@/lib/validations/auth";
-import { createRateLimitError } from "@/lib/error-helpers";
 
 type LoginFormValues = {
   email: string;
@@ -20,8 +19,8 @@ interface LoginFormProps {
   initialRedirectTo?: string;
 }
 
-export function LoginForm({ onLoginSuccess, initialRedirectTo = "/dashboard" }: LoginFormProps) {
-  const { signIn, error: authError } = useSignIn();
+export function LoginForm({ onLoginSuccess }: LoginFormProps) {
+  const { signIn, error: authError, clearError } = useAuth();
   const form = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -30,9 +29,6 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = "/dashboard" }: 
       rememberMe: false
     }
   });
-  const router = useRouter();
-  const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") || initialRedirectTo;
   
   // Rate limiting state
   const [loginAttempts, setLoginAttempts] = useState(0);
@@ -40,8 +36,16 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = "/dashboard" }: 
   const [cooldownEnd, setCooldownEnd] = useState<Date | null>(null);
   const [timeLeft, setTimeLeft] = useState(0);
   
+  // Clear previous errors when form is mounted
+  useEffect(() => {
+    clearError();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  
   // Check for stored rate limiting data on component mount
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
     const storedAttempts = localStorage.getItem('loginAttempts');
     const storedCooldownEnd = localStorage.getItem('cooldownEnd');
     
@@ -107,13 +111,6 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = "/dashboard" }: 
       return () => clearInterval(timer);
     }
   }, [isRateLimited, cooldownEnd]);
-  
-  // Check for error parameters from the callback page
-  const errorType = searchParams.get("error");
-  const errorMessage = searchParams.get("message");
-  const callbackError = errorType && errorMessage 
-    ? { code: errorType, message: decodeURIComponent(errorMessage) }
-    : errorType ? { code: errorType, message: `Authentication error (${errorType})` } : null;
 
   async function handleSubmit(values: LoginFormValues) {
     // Check if rate limited
@@ -121,49 +118,73 @@ export function LoginForm({ onLoginSuccess, initialRedirectTo = "/dashboard" }: 
       return;
     }
     
+    // Clear any previous errors before attempting login
+    clearError();
+    
     const { error } = await signIn({ 
       email: values.email, 
       password: values.password,
       rememberMe: values.rememberMe 
     });
-    
+
     if (error) {
-      // Store the time of this attempt
-      localStorage.setItem('lastAttemptTime', new Date().toISOString());
-      
-      // Increment login attempts on failure
-      const newAttempts = loginAttempts + 1;
-      setLoginAttempts(newAttempts);
-      localStorage.setItem('loginAttempts', newAttempts.toString());
-      
-      // Rate limit after 8 failed attempts instead of 5
-      if (newAttempts >= 8) {
-        const cooldown = new Date();
-        // 3 minute cooldown instead of 5
-        cooldown.setMinutes(cooldown.getMinutes() + 3);
+      // Store the time of this attempt regardless of error type
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('lastAttemptTime', new Date().toISOString());
+      }
+
+      // Check if the error is specifically due to invalid credentials
+      if (error.code === AuthErrorCode.INVALID_CREDENTIALS) {
+        const newAttempts = loginAttempts + 1;
+        setLoginAttempts(newAttempts);
         
-        setIsRateLimited(true);
-        setCooldownEnd(cooldown);
-        localStorage.setItem('cooldownEnd', cooldown.toISOString());
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('loginAttempts', newAttempts.toString());
+        }
+
+        // Apply client-side rate limit after N failed credential attempts
+        if (newAttempts >= 5) {
+          const cooldown = new Date();
+          // 3 minute cooldown
+          cooldown.setMinutes(cooldown.getMinutes() + 3);
+
+          setIsRateLimited(true);
+          setCooldownEnd(cooldown);
+          
+          if (typeof window !== 'undefined') {
+            localStorage.setItem('cooldownEnd', cooldown.toISOString());
+          }
+        }
       }
     } else if (onLoginSuccess) {
       // Reset attempts on success
       setLoginAttempts(0);
-      localStorage.removeItem('loginAttempts');
-      localStorage.removeItem('cooldownEnd');
-      localStorage.removeItem('lastAttemptTime');
+      
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('loginAttempts');
+        localStorage.removeItem('cooldownEnd');
+        localStorage.removeItem('lastAttemptTime');
+      }
+      
       onLoginSuccess();
     }
   }
 
-  // Create a rate limit error message
-  const rateLimitError = isRateLimited ? createRateLimitError(timeLeft) : null;
+  // Determine the error to display, prioritizing rate limiting
+  let displayError = authError;
+  if (authError?.code === AuthErrorCode.RATE_LIMITED) {
+    // Use the server's rate limit error directly
+    displayError = authError;
+  } else if (isRateLimited) {
+    // Use the client-side rate limit error if active
+    displayError = createRateLimitError(timeLeft);
+  }
 
   return (
     <AuthFormBase
       form={form}
       isLoading={form.formState.isSubmitting}
-      error={rateLimitError || callbackError || authError}
+      error={displayError}
       schemaName="loginSchema"
       onSubmit={handleSubmit}
       buttonText={isRateLimited ? `Try again in ${timeLeft}s` : "Log in"}
