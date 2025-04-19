@@ -2,6 +2,10 @@
 
 # dependencies
 /node_modules
+/.pnp
+.pnp.js
+yarn.lock
+pnpm-lock.yaml
 
 # next.js
 /.next/
@@ -29,5 +33,13 @@ next-env.d.ts
 # repomix
 repomix-output.xml
 
-#sample-audio
+# sample-audio
 sample-audio/
+
+# macOS
+.DS_Store
+
+# config files
+.mcp.json
+.roo/
+.git-blame-ignore-revs
